@@ -20,6 +20,11 @@ func Start() {
 			auth.POST("/logout", controller.Logout)
 		}
 
+		public := api.Group("/public")
+		{
+			public.GET("/plugins", controller.GetPublicPlugins)
+		}
+
 		users := api.Group("/users")
 		users.Use(middleware.Auth())
 		{

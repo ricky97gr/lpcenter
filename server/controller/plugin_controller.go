@@ -13,15 +13,19 @@ import (
 )
 
 type PluginRequest struct {
-	ProductID   uint   `json:"productId" binding:"required"`
-	VersionType string `json:"versionType" binding:"required"`
-	Code        string `json:"code" binding:"required"`
-	Version     string `json:"version" binding:"required"`
-	Description string `json:"description"`
-	Author      string `json:"author"`
-	FilePath    string `json:"filePath" binding:"required"`
-	DownloadURL string `json:"downloadUrl"`
-	Status      string `json:"status"`
+	ProductID         uint   `json:"productId" binding:"required"`
+	VersionType       string `json:"versionType" binding:"required"`
+	Code              string `json:"code" binding:"required"`
+	Name              string `json:"name" binding:"required"`
+	Version           string `json:"version" binding:"required"`
+	MiniServerVersion string `json:"miniServerVersion"`
+	MiniClientVersion string `json:"miniClientVersion"`
+	Description       string `json:"description"`
+	Tips              string `json:"tips"`
+	Author            string `json:"author"`
+	FilePath          string `json:"filePath" binding:"required"`
+	DownloadURL       string `json:"downloadUrl"`
+	Status            string `json:"status"`
 }
 
 func CreatePlugin(c *gin.Context) {
@@ -47,16 +51,20 @@ func CreatePlugin(c *gin.Context) {
 	}
 
 	plugin := models.Plugin{
-		UUID:        uuid.New().String(),
-		ProductID:   req.ProductID,
-		VersionType: req.VersionType,
-		Code:        req.Code,
-		Version:     req.Version,
-		Description: req.Description,
-		Author:      req.Author,
-		FilePath:    req.FilePath,
-		DownloadURL: req.DownloadURL,
-		Status:      models.PluginStatusPending,
+		UUID:              uuid.New().String(),
+		ProductID:         req.ProductID,
+		VersionType:       req.VersionType,
+		Code:              req.Code,
+		Name:              req.Name,
+		Version:           req.Version,
+		MiniServerVersion: req.MiniServerVersion,
+		MiniClientVersion: req.MiniClientVersion,
+		Description:       req.Description,
+		Tips:              req.Tips,
+		Author:            req.Author,
+		FilePath:          req.FilePath,
+		DownloadURL:       req.DownloadURL,
+		Status:            models.PluginStatusPending,
 	}
 
 	if err := db.Create(&plugin).Error; err != nil {
@@ -111,6 +119,51 @@ func GetAllPlugins(c *gin.Context) {
 	}
 
 	utils.Logger.Infow("GetAllPlugins success", "count", total, "page", pageQuery.Page, "pageSize", pageQuery.PageSize)
+	response.Success(c, plugins, total)
+}
+
+func GetPublicPlugins(c *gin.Context) {
+	db, err := database.GetDB()
+	if err != nil {
+		utils.Logger.Errorw("GetPublicPlugins database connection failed", "error", err)
+		response.Failed(c, http.StatusInternalServerError, "数据库连接失败")
+		return
+	}
+
+	pageQuery, err := pagination.GetPageQuery(c)
+	if err != nil {
+		utils.Logger.Errorw("GetPublicPlugins page query error", "error", err)
+		response.Failed(c, http.StatusBadRequest, "分页参数错误")
+		return
+	}
+
+	var plugins []models.Plugin
+	var total int64
+
+	countDB := db.Model(&models.Plugin{}).Where("status = ?", models.PluginStatusPublished)
+	for _, cond := range pageQuery.Conditions {
+		countDB = countDB.Scopes(pagination.QueryFilter(cond.Field, cond.Value, cond.Operation))
+	}
+	if err := countDB.Count(&total).Error; err != nil {
+		utils.Logger.Errorw("GetPublicPlugins count failed", "error", err)
+		response.Failed(c, http.StatusInternalServerError, "获取插件列表失败")
+		return
+	}
+
+	queryDB := db.Preload("Product").Where("status = ?", models.PluginStatusPublished).Scopes(pagination.ParseQuery(pageQuery))
+	if err := queryDB.Find(&plugins).Error; err != nil {
+		utils.Logger.Errorw("GetPublicPlugins find failed", "error", err)
+		response.Failed(c, http.StatusInternalServerError, "获取插件列表失败")
+		return
+	}
+
+	for i := range plugins {
+		var downloadCount int64
+		db.Model(&models.PluginDownload{}).Where("plugin_id = ?", plugins[i].ID).Count(&downloadCount)
+		plugins[i].DownloadCount = int(downloadCount)
+	}
+
+	utils.Logger.Infow("GetPublicPlugins success", "count", total, "page", pageQuery.Page, "pageSize", pageQuery.PageSize)
 	response.Success(c, plugins, total)
 }
 
@@ -169,8 +222,12 @@ func UpdatePlugin(c *gin.Context) {
 	plugin.ProductID = req.ProductID
 	plugin.VersionType = req.VersionType
 	plugin.Code = req.Code
+	plugin.Name = req.Name
 	plugin.Version = req.Version
+	plugin.MiniServerVersion = req.MiniServerVersion
+	plugin.MiniClientVersion = req.MiniClientVersion
 	plugin.Description = req.Description
+	plugin.Tips = req.Tips
 	plugin.Author = req.Author
 	plugin.FilePath = req.FilePath
 	plugin.DownloadURL = req.DownloadURL

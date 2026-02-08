@@ -28,6 +28,12 @@
         </template>
         <template v-if="column.key === 'action'">
           <a-space>
+            <a-button type="link" size="small" @click="handleViewDetail(record)">
+              <template #icon>
+                <EyeOutlined />
+              </template>
+              查看详情
+            </a-button>
             <a-dropdown v-if="record.status === 'pending'">
               <a-button type="link" size="small">
                 审核 <DownOutlined />
@@ -56,7 +62,7 @@
     <a-modal
       v-model:open="modalVisible"
       :title="isEdit ? '编辑插件' : '发布插件'"
-      width="600px"
+      width="800px"
       @ok="handleSubmit"
       @cancel="handleCancel"
     >
@@ -66,59 +72,160 @@
         :rules="rules"
         layout="vertical"
       >
-        <a-form-item label="选择产品" name="productId">
-          <a-select
-            v-model:value="formData.productId"
-            placeholder="请选择产品"
-            :loading="productLoading"
-            show-search
-            :filter-option="filterOption"
-          >
-            <a-select-option
-              v-for="product in products"
-              :key="product.id"
-              :value="product.id"
-            >
-              {{ product.name }} ({{ product.code }})
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="版本类型" name="versionType">
-          <a-select 
-            v-model:value="formData.versionType" 
-            placeholder="请选择版本类型"
-            :loading="versionLoading"
-            show-search
-            :filter-option="filterVersionOption"
-          >
-            <a-select-option
-              v-for="version in versions"
-              :key="version.code"
-              :value="version.code"
-            >
-              {{ version.name }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="插件编号" name="code">
-          <a-input v-model:value="formData.code" placeholder="请输入插件编号" />
-        </a-form-item>
-        <a-form-item label="版本号" name="version">
-          <a-input v-model:value="formData.version" placeholder="请输入版本号，如：1.0.0" />
-        </a-form-item>
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="选择产品" name="productId">
+              <a-select
+                v-model:value="formData.productId"
+                placeholder="请选择产品"
+                :loading="productLoading"
+                show-search
+                :filter-option="filterOption"
+              >
+                <a-select-option
+                  v-for="product in products"
+                  :key="product.id"
+                  :value="product.id"
+                >
+                  {{ product.name }} ({{ product.code }})
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="版本类型" name="versionType">
+              <a-select 
+                v-model:value="formData.versionType" 
+                placeholder="请选择版本类型"
+                :loading="versionLoading"
+                show-search
+                :filter-option="filterVersionOption"
+              >
+                <a-select-option
+                  v-for="version in versions"
+                  :key="version.code"
+                  :value="version.code"
+                >
+                  {{ version.name }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="插件编号" name="code">
+              <a-input v-model:value="formData.code" placeholder="请输入插件编号" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="插件名称" name="name">
+              <a-input v-model:value="formData.name" placeholder="请输入插件名称" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="版本号" name="version">
+              <a-input v-model:value="formData.version" placeholder="请输入版本号，如：1.0.0" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="作者" name="author">
+              <a-input v-model:value="formData.author" placeholder="请输入作者名称" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="最低服务器版本" name="miniServerVersion">
+              <a-input v-model:value="formData.miniServerVersion" placeholder="请输入最低服务器版本，如：1.0.0" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="最低客户端版本" name="miniClientVersion">
+              <a-input v-model:value="formData.miniClientVersion" placeholder="请输入最低客户端版本，如：1.0.0" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="文件路径" name="filePath">
+              <a-input v-model:value="formData.filePath" placeholder="请输入文件路径" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="下载地址" name="downloadUrl">
+              <a-input v-model:value="formData.downloadUrl" placeholder="请输入下载地址（可选）" />
+            </a-form-item>
+          </a-col>
+        </a-row>
         <a-form-item label="插件描述" name="description">
           <a-textarea v-model:value="formData.description" :rows="3" placeholder="请输入插件描述" />
         </a-form-item>
-        <a-form-item label="作者" name="author">
-          <a-input v-model:value="formData.author" placeholder="请输入作者名称" />
-        </a-form-item>
-        <a-form-item label="文件路径" name="filePath">
-          <a-input v-model:value="formData.filePath" placeholder="请输入文件路径" />
-        </a-form-item>
-        <a-form-item label="下载地址" name="downloadUrl">
-          <a-input v-model:value="formData.downloadUrl" placeholder="请输入下载地址（可选）" />
+        <a-form-item label="提示信息" name="tips">
+          <a-textarea v-model:value="formData.tips" :rows="3" placeholder="请输入提示信息" />
         </a-form-item>
       </a-form>
+    </a-modal>
+
+    <a-modal
+      v-model:open="detailModalVisible"
+      title="插件详情"
+      :footer="null"
+      width="800px"
+    >
+      <a-descriptions bordered :column="2">
+        <a-descriptions-item label="插件名称">
+          {{ currentPlugin.name }}
+        </a-descriptions-item>
+        <a-descriptions-item label="插件编号">
+          {{ currentPlugin.code }}
+        </a-descriptions-item>
+        <a-descriptions-item label="版本号">
+          {{ currentPlugin.version }}
+        </a-descriptions-item>
+        <a-descriptions-item label="授权类型">
+          <a-tag :color="getVersionTypeColor(currentPlugin.versionType)">
+            {{ getVersionTypeLabel(currentPlugin.versionType) }}
+          </a-tag>
+        </a-descriptions-item>
+        <a-descriptions-item label="产品">
+          {{ currentPlugin.product?.name || '-' }}
+        </a-descriptions-item>
+        <a-descriptions-item label="作者">
+          {{ currentPlugin.author || '-' }}
+        </a-descriptions-item>
+        <a-descriptions-item label="最低服务器版本">
+          {{ currentPlugin.miniServerVersion || '-' }}
+        </a-descriptions-item>
+        <a-descriptions-item label="最低客户端版本">
+          {{ currentPlugin.miniClientVersion || '-' }}
+        </a-descriptions-item>
+        <a-descriptions-item label="下载量">
+          {{ currentPlugin.downloadCount || 0 }}
+        </a-descriptions-item>
+        <a-descriptions-item label="状态">
+          <a-tag :color="getStatusColor(currentPlugin.status)">
+            {{ getStatusText(currentPlugin.status) }}
+          </a-tag>
+        </a-descriptions-item>
+        <a-descriptions-item label="文件路径" :span="2">
+          {{ currentPlugin.filePath }}
+        </a-descriptions-item>
+        <a-descriptions-item label="下载地址" :span="2">
+          {{ currentPlugin.downloadUrl || '-' }}
+        </a-descriptions-item>
+        <a-descriptions-item label="插件描述" :span="2">
+          {{ currentPlugin.description || '-' }}
+        </a-descriptions-item>
+        <a-descriptions-item label="提示信息" :span="2">
+          {{ currentPlugin.tips || '-' }}
+        </a-descriptions-item>
+        <a-descriptions-item label="上传时间" :span="2">
+          {{ formatTime(currentPlugin.uploadedAt) }}
+        </a-descriptions-item>
+      </a-descriptions>
     </a-modal>
   </div>
 </template>
@@ -126,7 +233,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { DownOutlined } from '@ant-design/icons-vue'
+import { DownOutlined, EyeOutlined } from '@ant-design/icons-vue'
 import { pluginAPI, productAPI, versionAPI } from '../api'
 
 const loading = ref(false)
@@ -136,9 +243,11 @@ const plugins = ref([])
 const products = ref([])
 const versions = ref([])
 const modalVisible = ref(false)
+const detailModalVisible = ref(false)
 const isEdit = ref(false)
 const formRef = ref()
 const currentEditId = ref(null)
+const currentPlugin = ref({})
 
 const pagination = reactive({
   current: 1,
@@ -149,25 +258,25 @@ const pagination = reactive({
 })
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
-  { title: '插件编号', dataIndex: 'code', key: 'code' },
-  { title: '版本号', dataIndex: 'version', key: 'version', width: 100 },
-  { title: '版本类型', dataIndex: 'versionType', key: 'versionType', width: 100 },
+  { title: '插件名称', dataIndex: 'name', key: 'name' },
   { title: '产品', dataIndex: 'product', key: 'product' },
-  { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true },
+  { title: '版本号', dataIndex: 'version', key: 'version', width: 100 },
+  { title: '授权类型', dataIndex: 'versionType', key: 'versionType', width: 100 },
   { title: '作者', dataIndex: 'author', key: 'author', width: 100 },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '下载量', dataIndex: 'downloadCount', key: 'downloadCount', width: 100 },
-  { title: '上传时间', dataIndex: 'uploadedAt', key: 'uploadedAt', width: 180 },
-  { title: '操作', key: 'action', width: 200, fixed: 'right' }
+  { title: '操作', key: 'action', width: 300, fixed: 'right' }
 ]
 
 const formData = reactive({
   productId: null,
   versionType: null,
   code: '',
+  name: '',
   version: '',
+  miniServerVersion: '',
+  miniClientVersion: '',
   description: '',
+  tips: '',
   author: '',
   filePath: '',
   downloadUrl: ''
@@ -177,6 +286,7 @@ const rules = {
   productId: [{ required: true, message: '请选择产品', trigger: 'change' }],
   versionType: [{ required: true, message: '请选择版本类型', trigger: 'change' }],
   code: [{ required: true, message: '请输入插件编号', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入插件名称', trigger: 'blur' }],
   version: [{ required: true, message: '请输入版本号', trigger: 'blur' }],
   filePath: [{ required: true, message: '请输入文件路径', trigger: 'blur' }]
 }
@@ -293,8 +403,12 @@ const showCreateModal = () => {
     productId: null,
     versionType: null,
     code: '',
+    name: '',
     version: '',
+    miniServerVersion: '',
+    miniClientVersion: '',
     description: '',
+    tips: '',
     author: '',
     filePath: '',
     downloadUrl: ''
@@ -309,13 +423,27 @@ const handleEdit = (record) => {
     productId: record.productId,
     versionType: record.versionType,
     code: record.code,
+    name: record.name,
     version: record.version,
+    miniServerVersion: record.miniServerVersion,
+    miniClientVersion: record.miniClientVersion,
     description: record.description,
+    tips: record.tips,
     author: record.author,
     filePath: record.filePath,
-    downloadUrl: record.downloadUrl
+    downloadURL: record.downloadUrl
   })
   modalVisible.value = true
+}
+
+const handleViewDetail = (record) => {
+  currentPlugin.value = { ...record }
+  detailModalVisible.value = true
+}
+
+const formatTime = (time) => {
+  if (!time) return '-'
+  return new Date(time).toLocaleString('zh-CN')
 }
 
 const handleSubmit = async () => {
