@@ -22,7 +22,7 @@
             <span>概览</span>
           </a-menu-item>
 
-          <a-menu-item key="/versions">
+          <a-menu-item key="/license-types">
             <template #icon>
               <AppstoreOutlined />
             </template>
@@ -41,6 +41,13 @@
               <AppstoreOutlined />
             </template>
             <span>插件管理</span>
+          </a-menu-item>
+
+          <a-menu-item key="/upload">
+            <template #icon>
+              <UploadOutlined />
+            </template>
+            <span>上传插件</span>
           </a-menu-item>
 
           <a-menu-item key="/license-request">
@@ -136,7 +143,8 @@ import {
   DownOutlined,
   LogoutOutlined,
   UserOutlined,
-  DashboardOutlined
+  DashboardOutlined,
+  UploadOutlined
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { authAPI } from '../api'
@@ -151,9 +159,10 @@ const openKeys = ref([])
 const currentPageTitle = computed(() => {
   const path = route.path
   if (path === '/dashboard') return '概览'
-  if (path === '/versions') return '授权类型管理'
+  if (path === '/license-types') return '授权类型管理'
   if (path === '/products') return '产品管理'
   if (path === '/plugins') return '插件管理'
+  if (path === '/upload') return '上传插件'
   if (path === '/license-request') return '申请授权'
   if (path === '/license-management') return '授权管理'
   if (path === '/user-management') return '用户管理'

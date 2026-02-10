@@ -22,6 +22,7 @@
           <a-tag :color="getStatusColor(record.status)">
             {{ getStatusText(record.status) }}
           </a-tag>
+          <a-tag v-if="record.signed" color="blue" style="margin-left: 4px">已签名</a-tag>
         </template>
         <template v-if="column.key === 'product'">
           {{ record.product?.name || '-' }}
@@ -34,26 +35,47 @@
               </template>
               查看详情
             </a-button>
-            <a-dropdown v-if="record.status === 'pending'">
+            <a-dropdown>
               <a-button type="link" size="small">
-                审核 <DownOutlined />
+                操作 <DownOutlined />
               </a-button>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item @click="handleApprove(record.id)">发布</a-menu-item>
-                  <a-menu-item @click="handleReject(record.id)">停用</a-menu-item>
+                  <a-menu-item 
+                    v-if="record.status === 'pending' && !record.signed" 
+                    @click="handleSign(record.id)"
+                  >
+                    签名
+                  </a-menu-item>
+                  <a-menu-item 
+                    v-if="record.status === 'signed'" 
+                    @click="handlePublish(record.id)"
+                  >
+                    发布
+                  </a-menu-item>
+                  <a-menu-item 
+                    v-if="record.status === 'pending' && !record.signed" 
+                    @click="handlePublish(record.id)"
+                  >
+                    直接发布
+                  </a-menu-item>
+                  <a-menu-item 
+                    v-if="record.status === 'published'" 
+                    @click="handleDisable(record.id)"
+                  >
+                    停用
+                  </a-menu-item>
+                  <a-menu-item 
+                    v-if="record.status === 'disabled'" 
+                    @click="handlePublish(record.id)"
+                  >
+                    重新发布
+                  </a-menu-item>
+                  <a-menu-item @click="handleEdit(record)">编辑</a-menu-item>
+                  <a-menu-item danger @click="handleDelete(record.id)">删除</a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
-            <a-button v-if="record.status === 'published'" type="link" size="small" @click="handleReject(record.id)">停用</a-button>
-            <a-button v-if="record.status === 'disabled'" type="link" size="small" @click="handleApprove(record.id)">重新发布</a-button>
-            <a-button type="link" size="small" @click="handleEdit(record)">编辑</a-button>
-            <a-popconfirm
-              title="确定要删除这个插件吗？"
-              @confirm="handleDelete(record.id)"
-            >
-              <a-button type="link" size="small" danger>删除</a-button>
-            </a-popconfirm>
           </a-space>
         </template>
       </template>
@@ -97,16 +119,16 @@
               <a-select 
                 v-model:value="formData.versionType" 
                 placeholder="请选择版本类型"
-                :loading="versionLoading"
+                :loading="licenseTypeLoading"
                 show-search
-                :filter-option="filterVersionOption"
+                :filter-option="filterLicenseTypeOption"
               >
                 <a-select-option
-                  v-for="version in versions"
-                  :key="version.code"
-                  :value="version.code"
+                  v-for="licenseType in licenseTypes"
+                  :key="licenseType.code"
+                  :value="licenseType.code"
                 >
-                  {{ version.name }}
+                  {{ licenseType.name }}
                 </a-select-option>
               </a-select>
             </a-form-item>
@@ -234,14 +256,14 @@
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { DownOutlined, EyeOutlined } from '@ant-design/icons-vue'
-import { pluginAPI, productAPI, versionAPI } from '../api'
+import { pluginAPI, productAPI, licenseTypeAPI } from '../api'
 
 const loading = ref(false)
 const productLoading = ref(false)
-const versionLoading = ref(false)
+const licenseTypeLoading = ref(false)
 const plugins = ref([])
 const products = ref([])
-const versions = ref([])
+const licenseTypes = ref([])
 const modalVisible = ref(false)
 const detailModalVisible = ref(false)
 const isEdit = ref(false)
@@ -263,6 +285,7 @@ const columns = [
   { title: '版本号', dataIndex: 'version', key: 'version', width: 100 },
   { title: '授权类型', dataIndex: 'versionType', key: 'versionType', width: 100 },
   { title: '作者', dataIndex: 'author', key: 'author', width: 100 },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '下载量', dataIndex: 'downloadCount', key: 'downloadCount', width: 100 },
   { title: '操作', key: 'action', width: 300, fixed: 'right' }
 ]
@@ -302,7 +325,7 @@ const getVersionTypeColor = (type) => {
 }
 
 const getVersionTypeLabel = (type) => {
-  const found = versions.value.find(v => v.code === type)
+  const found = licenseTypes.value.find(v => v.code === type)
   return found ? found.name : type
 }
 
@@ -310,6 +333,7 @@ const getStatusColor = (status) => {
   const colors = {
     pending: 'orange',
     published: 'green',
+    signed: 'blue',
     disabled: 'red'
   }
   return colors[status] || 'default'
@@ -317,9 +341,10 @@ const getStatusColor = (status) => {
 
 const getStatusText = (status) => {
   const texts = {
-    pending: '审核中',
-    published: '发布',
-    disabled: '停用'
+    pending: '待审核',
+    published: '已发布',
+    signed: '已签名',
+    disabled: '已停用'
   }
   return texts[status] || status
 }
@@ -330,10 +355,10 @@ const filterOption = (input, option) => {
                      product.code.toLowerCase().includes(input.toLowerCase()))
 }
 
-const filterVersionOption = (input, option) => {
-  const version = versions.value.find(v => v.code === option.value)
-  return version && (version.name.toLowerCase().includes(input.toLowerCase()) ||
-                     version.code.toLowerCase().includes(input.toLowerCase()))
+const filterLicenseTypeOption = (input, option) => {
+  const licenseType = licenseTypes.value.find(v => v.code === option.value)
+  return licenseType && (licenseType.name.toLowerCase().includes(input.toLowerCase()) ||
+                     licenseType.code.toLowerCase().includes(input.toLowerCase()))
 }
 
 const loadPlugins = async () => {
@@ -378,21 +403,21 @@ const loadProducts = async () => {
   }
 }
 
-const loadVersions = async () => {
-  versionLoading.value = true
+const loadLicenseTypes = async () => {
+  licenseTypeLoading.value = true
   try {
-    const response = await versionAPI.getAll()
-    console.log('Versions response:', response)
+    const response = await licenseTypeAPI.getAll()
+    console.log('License types response:', response)
     if (response.data && response.data.result) {
-      versions.value = response.data.result
+      licenseTypes.value = response.data.result
     } else {
-      versions.value = []
+      licenseTypes.value = []
     }
   } catch (error) {
-    console.error('Load versions error:', error)
-    message.error('加载版本列表失败')
+    console.error('Load license types error:', error)
+    message.error('加载授权类型列表失败')
   } finally {
-    versionLoading.value = false
+    licenseTypeLoading.value = false
   }
 }
 
@@ -510,6 +535,39 @@ const handleReject = async (id) => {
   }
 }
 
+const handleSign = async (id) => {
+  try {
+    await pluginAPI.sign(id)
+    message.success('插件签名成功')
+    await loadPlugins()
+  } catch (error) {
+    console.error('Sign error:', error)
+    message.error('签名失败')
+  }
+}
+
+const handlePublish = async (id) => {
+  try {
+    await pluginAPI.publish(id)
+    message.success('插件发布成功')
+    await loadPlugins()
+  } catch (error) {
+    console.error('Publish error:', error)
+    message.error('发布失败')
+  }
+}
+
+const handleDisable = async (id) => {
+  try {
+    await pluginAPI.disable(id)
+    message.success('插件已停用')
+    await loadPlugins()
+  } catch (error) {
+    console.error('Disable error:', error)
+    message.error('停用失败')
+  }
+}
+
 const handleTableChange = (pag) => {
   pagination.current = pag.current
   pagination.pageSize = pag.pageSize
@@ -519,7 +577,7 @@ const handleTableChange = (pag) => {
 onMounted(() => {
   loadPlugins()
   loadProducts()
-  loadVersions()
+  loadLicenseTypes()
 })
 </script>
 

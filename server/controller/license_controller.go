@@ -14,11 +14,12 @@ import (
 )
 
 type LicenseRequest struct {
-	SerialNumber string `json:"serialNumber" binding:"required"`
-	ProductID    uint   `json:"productId" binding:"required"`
-	Version      string `json:"version" binding:"required"`
-	ExpiryDate   string `json:"expiryDate" binding:"required"`
-	Remarks      string `json:"remarks"`
+	SerialNumber  string `json:"serialNumber" binding:"required"`
+	ProductID     uint   `json:"productId" binding:"required"`
+	LicenseType   string `json:"licenseType" binding:"required"`
+	LicensePoints int    `json:"licensePoints" binding:"required"`
+	ExpiryDate    string `json:"expiryDate" binding:"required"`
+	Remarks       string `json:"remarks"`
 }
 
 func CreateLicense(c *gin.Context) {
@@ -44,13 +45,14 @@ func CreateLicense(c *gin.Context) {
 	}
 
 	license := models.License{
-		UUID:         uuid.New().String(),
-		SerialNumber: req.SerialNumber,
-		ProductID:    req.ProductID,
-		Version:      req.Version,
-		ExpiryDate:   parseExpiryDate(req.ExpiryDate),
-		Remarks:      req.Remarks,
-		Status:       models.LicenseStatusPending,
+		UUID:          uuid.New().String(),
+		SerialNumber:  req.SerialNumber,
+		ProductID:     req.ProductID,
+		LicenseType:   req.LicenseType,
+		LicensePoints: req.LicensePoints,
+		ExpiryDate:    parseExpiryDate(req.ExpiryDate),
+		Remarks:       req.Remarks,
+		Status:        models.LicenseStatusPending,
 	}
 
 	if err := db.Create(&license).Error; err != nil {
@@ -156,7 +158,8 @@ func UpdateLicense(c *gin.Context) {
 
 	license.SerialNumber = req.SerialNumber
 	license.ProductID = req.ProductID
-	license.Version = req.Version
+	license.LicenseType = req.LicenseType
+	license.LicensePoints = req.LicensePoints
 	license.ExpiryDate = parseExpiryDate(req.ExpiryDate)
 	license.Remarks = req.Remarks
 
@@ -212,14 +215,15 @@ func ApproveLicense(c *gin.Context) {
 	}
 
 	licenseData := map[string]interface{}{
-		"serialNumber": license.SerialNumber,
-		"productId":    license.ProductID,
-		"productName":  license.Product.Name,
-		"version":      license.Version,
-		"expiryDate":   license.ExpiryDate.Format("2006-01-02"),
-		"expiryTime":   license.ExpiryDate.Unix(),
-		"createdAt":    license.CreatedAt.Unix(),
-		"status":       "approved",
+		"serialNumber":  license.SerialNumber,
+		"productId":     license.ProductID,
+		"productName":   license.Product.Name,
+		"licenseType":   license.LicenseType,
+		"licensePoints": license.LicensePoints,
+		"expiryDate":    license.ExpiryDate.Format("2006-01-02"),
+		"expiryTime":    license.ExpiryDate.Unix(),
+		"createdAt":     license.CreatedAt.Unix(),
+		"status":        "approved",
 	}
 
 	licenseString, err := utils.GenerateLicenseString(licenseData)

@@ -23,6 +23,12 @@ func Start() {
 		public := api.Group("/public")
 		{
 			public.GET("/plugins", controller.GetPublicPlugins)
+			public.GET("/products", controller.GetAllProducts)
+			public.GET("/products/:id", controller.GetProduct)
+			public.GET("/license-types", controller.GetAllLicenseTypes)
+			public.GET("/license-types/:id", controller.GetLicenseType)
+			public.POST("/plugins", controller.CreatePlugin)
+			public.POST("/plugins/upload", controller.UploadPlugin)
 		}
 
 		users := api.Group("/users")
@@ -46,24 +52,32 @@ func Start() {
 			dashboard.GET("/recent-plugins", controller.GetRecentPlugins)
 		}
 
-		versions := api.Group("/versions")
-		versions.Use(middleware.Auth())
+		licenseTypes := api.Group("/license-types")
 		{
-			versions.GET("", controller.GetAllVersions)
-			versions.POST("", controller.CreateVersion)
-			versions.GET("/:id", controller.GetVersion)
-			versions.PUT("/:id", controller.UpdateVersion)
-			versions.DELETE("/:id", controller.DeleteVersion)
+			licenseTypes.GET("", controller.GetAllLicenseTypes)
+			licenseTypes.GET("/:id", controller.GetLicenseType)
+		}
+
+		licenseTypesAuth := api.Group("/license-types")
+		licenseTypesAuth.Use(middleware.Auth())
+		{
+			licenseTypesAuth.POST("", controller.CreateLicenseType)
+			licenseTypesAuth.PUT("/:id", controller.UpdateLicenseType)
+			licenseTypesAuth.DELETE("/:id", controller.DeleteLicenseType)
 		}
 
 		products := api.Group("/products")
-		products.Use(middleware.Auth())
 		{
 			products.GET("", controller.GetAllProducts)
-			products.POST("", controller.CreateProduct)
 			products.GET("/:id", controller.GetProduct)
-			products.PUT("/:id", controller.UpdateProduct)
-			products.DELETE("/:id", controller.DeleteProduct)
+		}
+
+		productsAuth := api.Group("/products")
+		productsAuth.Use(middleware.Auth())
+		{
+			productsAuth.POST("", controller.CreateProduct)
+			productsAuth.PUT("/:id", controller.UpdateProduct)
+			productsAuth.DELETE("/:id", controller.DeleteProduct)
 		}
 
 		plugins := api.Group("/plugins")
@@ -75,6 +89,9 @@ func Start() {
 			plugins.PUT("/:id", controller.UpdatePlugin)
 			plugins.DELETE("/:id", controller.DeletePlugin)
 			plugins.PUT("/:id/status", controller.UpdatePluginStatus)
+			plugins.PUT("/:id/sign", controller.SignPlugin)
+			plugins.PUT("/:id/publish", controller.PublishPlugin)
+			plugins.PUT("/:id/disable", controller.DisablePlugin)
 		}
 
 		downloads := api.Group("/downloads")
@@ -99,5 +116,18 @@ func Start() {
 		}
 	}
 
-	engine.Run(":8081")
+	go engine.Run(":8081")
+}
+
+func StartDownloadServer() {
+	gin.SetMode(gin.DebugMode)
+
+	engine := gin.New()
+	engine.Use(middleware.Logger(), middleware.Recovery(), middleware.CORS())
+
+	engine.POST("/download/task", controller.CreateDownloadTask)
+	engine.GET("/download/status/:taskId", controller.GetDownloadStatus)
+	engine.GET("/download/file", controller.DownloadFile)
+
+	engine.Run(":8082")
 }

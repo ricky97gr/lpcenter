@@ -1,24 +1,17 @@
 <template>
-  <div class="version-management">
+  <div class="license-type-management">
     <div class="header">
       <a-button type="primary" @click="showCreateModal">新增授权类型</a-button>
     </div>
 
     <a-table
       :columns="columns"
-      :data-source="versions"
+      :data-source="licenseTypes"
       :loading="loading"
       :pagination="pagination"
       row-key="id"
-      @change="handleTableChange"
     >
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'isPaid'">
-          <a-switch
-            :checked="record.isPaid"
-            @change="(checked) => handleTogglePaid(record.id, checked)"
-          />
-        </template>
         <template v-if="column.key === 'action'">
           <a-space>
             <a-button type="link" size="small" @click="handleEdit(record)">编辑</a-button>
@@ -46,13 +39,16 @@
         layout="vertical"
       >
         <a-form-item label="授权类型名称" name="name">
-          <a-input v-model:value="formData.name" placeholder="请输入授权类型名称，如：普通版" />
+          <a-input v-model:value="formData.name" placeholder="请输入授权类型名称" />
         </a-form-item>
-        <a-form-item label="是否付费" name="isPaid">
+        <a-form-item label="授权类型代码" name="code">
+          <a-input v-model:value="formData.code" placeholder="请输入授权类型代码" />
+        </a-form-item>
+        <a-form-item label="是否为付费版本" name="isPaid">
           <a-switch v-model:checked="formData.isPaid" />
         </a-form-item>
         <a-form-item label="创建人" name="createdBy">
-          <a-input v-model:value="formData.createdBy" placeholder="请输入创建人姓名（可选）" />
+          <a-input v-model:value="formData.createdBy" placeholder="请输入创建人" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -62,14 +58,14 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { versionAPI } from '../api'
+import { licenseTypeAPI } from '../api'
 
 const loading = ref(false)
-const versions = ref([])
+const licenseTypes = ref([])
 const modalVisible = ref(false)
 const isEdit = ref(false)
-const currentEditId = ref(null)
 const formRef = ref()
+const currentEditId = ref(null)
 
 const pagination = reactive({
   current: 1,
@@ -82,40 +78,43 @@ const pagination = reactive({
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
   { title: '授权类型名称', dataIndex: 'name', key: 'name' },
-  { title: '是否付费', dataIndex: 'isPaid', key: 'isPaid', width: 100 },
-  { title: '创建人', dataIndex: 'createdBy', key: 'createdBy', width: 120 },
+  { title: '授权类型代码', dataIndex: 'code', key: 'code' },
+  { title: '是否付费', dataIndex: 'isPaid', key: 'isPaid', width: 100, customRender: (text) => text ? '是' : '否' },
+  { title: '创建人', dataIndex: 'createdBy', key: 'createdBy' },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 180 },
   { title: '操作', key: 'action', width: 150, fixed: 'right' }
 ]
 
 const formData = reactive({
   name: '',
+  code: '',
   isPaid: false,
   createdBy: ''
 })
 
 const rules = {
-  name: [{ required: true, message: '请输入版本名称', trigger: 'blur' }]
+  name: [{ required: true, message: '请输入授权类型名称', trigger: 'blur' }],
+  code: [{ required: true, message: '请输入授权类型代码', trigger: 'blur' }]
 }
 
-const loadVersions = async () => {
+const loadLicenseTypes = async () => {
   loading.value = true
   try {
     const params = {
       page: pagination.current,
       pageSize: pagination.pageSize
     }
-    const response = await versionAPI.getAll(params)
-    console.log('Versions response:', response)
+    const response = await licenseTypeAPI.getAll(params)
+    console.log('License types response:', response)
     if (response.data && response.data.result) {
-      versions.value = response.data.result
+      licenseTypes.value = response.data.result
       pagination.total = response.data.total || response.data.result.length
     } else {
-      versions.value = []
+      licenseTypes.value = []
       pagination.total = 0
     }
   } catch (error) {
-    console.error('Load versions error:', error)
+    console.error('Load license types error:', error)
     message.error('加载授权类型列表失败')
   } finally {
     loading.value = false
@@ -127,6 +126,7 @@ const showCreateModal = () => {
   currentEditId.value = null
   Object.assign(formData, {
     name: '',
+    code: '',
     isPaid: false,
     createdBy: ''
   })
@@ -138,24 +138,11 @@ const handleEdit = (record) => {
   currentEditId.value = record.id
   Object.assign(formData, {
     name: record.name,
+    code: record.code,
     isPaid: record.isPaid,
     createdBy: record.createdBy
   })
   modalVisible.value = true
-}
-
-const handleTogglePaid = async (id, checked) => {
-  try {
-    const version = versions.value.find(v => v.id === id)
-    if (version) {
-      await versionAPI.update(id, { name: version.name, isPaid: checked, createdBy: version.createdBy })
-      version.isPaid = checked
-      message.success(checked ? '已设置为付费版本' : '已设置为免费版本')
-    }
-  } catch (error) {
-    console.error('Toggle paid error:', error)
-    message.error('更新失败')
-  }
 }
 
 const handleSubmit = async () => {
@@ -164,21 +151,21 @@ const handleSubmit = async () => {
     loading.value = true
     
     if (isEdit.value) {
-      await versionAPI.update(currentEditId.value, formData)
-      message.success('更新版本成功')
+      await licenseTypeAPI.update(currentEditId.value, formData)
+      message.success('更新授权类型成功')
     } else {
-      await versionAPI.create(formData)
-      message.success('创建版本成功')
+      await licenseTypeAPI.create(formData)
+      message.success('创建授权类型成功')
     }
     
     modalVisible.value = false
-    await loadVersions()
+    await loadLicenseTypes()
   } catch (error) {
     if (error.errorFields) {
       return
     }
     console.error('Submit error:', error)
-    message.error(isEdit.value ? '更新版本失败' : '创建版本失败')
+    message.error(isEdit.value ? '更新授权类型失败' : '创建授权类型失败')
   } finally {
     loading.value = false
   }
@@ -191,28 +178,22 @@ const handleCancel = () => {
 
 const handleDelete = async (id) => {
   try {
-    await versionAPI.delete(id)
-    message.success('删除版本成功')
-    await loadVersions()
+    await licenseTypeAPI.delete(id)
+    message.success('删除授权类型成功')
+    await loadLicenseTypes()
   } catch (error) {
     console.error('Delete error:', error)
-    message.error('删除版本失败')
+    message.error('删除授权类型失败')
   }
 }
 
-const handleTableChange = (pag) => {
-  pagination.current = pag.current
-  pagination.pageSize = pag.pageSize
-  loadVersions()
-}
-
 onMounted(() => {
-  loadVersions()
+  loadLicenseTypes()
 })
 </script>
 
 <style scoped>
-.version-management {
+.license-type-management {
   padding: 24px;
 }
 

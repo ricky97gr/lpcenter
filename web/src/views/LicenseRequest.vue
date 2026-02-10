@@ -43,24 +43,38 @@
 
         <a-form-item
           label="授权类型"
-          name="version"
+          name="licenseType"
         >
           <a-select
-            v-model:value="form.version"
+            v-model:value="form.licenseType"
             placeholder="请选择授权类型"
             style="width: 400px;"
-            :loading="versionLoading"
+            :loading="licenseTypeLoading"
             show-search
-            :filter-option="filterVersionOption"
+            :filter-option="filterLicenseTypeOption"
           >
             <a-select-option
-              v-for="version in versions"
-              :key="version.code"
-              :value="version.code"
+              v-for="licenseType in licenseTypes"
+              :key="licenseType.id"
+              :value="licenseType.code"
             >
-              {{ version.name }}
+              {{ licenseType.name }}
             </a-select-option>
           </a-select>
+        </a-form-item>
+
+        <a-form-item
+          label="授权点数"
+          name="licensePoints"
+        >
+          <a-input-number
+            v-model:value="form.licensePoints"
+            placeholder="请输入授权点数"
+            style="width: 400px;"
+            :min="1"
+            :max="99999"
+            :step="1"
+          />
         </a-form-item>
 
         <a-form-item
@@ -112,20 +126,21 @@
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { CheckOutlined, ReloadOutlined } from '@ant-design/icons-vue'
-import { productAPI, licenseAPI, versionAPI } from '../api'
+import { productAPI, licenseAPI, licenseTypeAPI } from '../api'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
 const productLoading = ref(false)
-const versionLoading = ref(false)
+const licenseTypeLoading = ref(false)
 const formRef = ref()
 const products = ref([])
-const versions = ref([])
+const licenseTypes = ref([])
 
 const form = reactive({
   serialNumber: '',
   productId: undefined,
-  version: '',
+  licenseType: '',
+  licensePoints: 1,
   expiryDate: null,
   remarks: ''
 })
@@ -133,7 +148,8 @@ const form = reactive({
 const rules = {
   serialNumber: [{ required: true, message: '请输入序列号', trigger: 'blur' }],
   productId: [{ required: true, message: '请选择产品', trigger: 'change' }],
-  version: [{ required: true, message: '请输入版本号', trigger: 'blur' }],
+  licenseType: [{ required: true, message: '请选择授权类型', trigger: 'change' }],
+  licensePoints: [{ required: true, message: '请输入授权点数', trigger: 'blur' }],
   expiryDate: [{ required: true, message: '请选择有效期', trigger: 'change' }]
 }
 
@@ -147,10 +163,10 @@ const filterOption = (input, option) => {
                      product.code.toLowerCase().includes(input.toLowerCase()))
 }
 
-const filterVersionOption = (input, option) => {
-  const version = versions.value.find(v => v.code === option.value)
-  return version && (version.name.toLowerCase().includes(input.toLowerCase()) ||
-                     version.code.toLowerCase().includes(input.toLowerCase()))
+const filterLicenseTypeOption = (input, option) => {
+  const licenseType = licenseTypes.value.find(v => v.code === option.value)
+  return licenseType && (licenseType.name.toLowerCase().includes(input.toLowerCase()) ||
+                         licenseType.code.toLowerCase().includes(input.toLowerCase()))
 }
 
 const loadProducts = async () => {
@@ -171,21 +187,21 @@ const loadProducts = async () => {
   }
 }
 
-const loadVersions = async () => {
-  versionLoading.value = true
+const loadLicenseTypes = async () => {
+  licenseTypeLoading.value = true
   try {
-    const response = await versionAPI.getAll()
-    console.log('Versions response:', response)
+    const response = await licenseTypeAPI.getAll()
+    console.log('License types response:', response)
     if (response.data && response.data.result) {
-      versions.value = response.data.result.filter(v => v.isPaid === true)
+      licenseTypes.value = response.data.result.filter(v => v.isPaid === true)
     } else {
-      versions.value = []
+      licenseTypes.value = []
     }
   } catch (error) {
-    console.error('Load versions error:', error)
-    message.error('加载版本列表失败')
+    console.error('Load license types error:', error)
+    message.error('加载授权类型列表失败')
   } finally {
-    versionLoading.value = false
+    licenseTypeLoading.value = false
   }
 }
 
@@ -195,7 +211,8 @@ const handleSubmit = async () => {
     await licenseAPI.create({
       serialNumber: form.serialNumber,
       productId: form.productId,
-      version: form.version,
+      licenseType: form.licenseType,
+      licensePoints: form.licensePoints,
       expiryDate: form.expiryDate ? form.expiryDate.format('YYYY-MM-DD') : '',
       remarks: form.remarks
     })
@@ -215,7 +232,8 @@ const handleReset = () => {
   Object.assign(form, {
     serialNumber: '',
     productId: undefined,
-    version: '',
+    licenseType: '',
+    licensePoints: 1,
     expiryDate: null,
     remarks: ''
   })
@@ -223,7 +241,7 @@ const handleReset = () => {
 
 onMounted(() => {
   loadProducts()
-  loadVersions()
+  loadLicenseTypes()
 })
 </script>
 

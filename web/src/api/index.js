@@ -80,21 +80,21 @@ export const dashboardAPI = {
   }
 }
 
-export const versionAPI = {
+export const licenseTypeAPI = {
   getAll(params = {}) {
-    return api.get('/versions', { params })
+    return api.get('/license-types', { params })
   },
   getById(id) {
-    return api.get(`/versions/${id}`)
+    return api.get(`/license-types/${id}`)
   },
   create(data) {
-    return api.post('/versions', data)
+    return api.post('/license-types', data)
   },
   update(id, data) {
-    return api.put(`/versions/${id}`, data)
+    return api.put(`/license-types/${id}`, data)
   },
   delete(id) {
-    return api.delete(`/versions/${id}`)
+    return api.delete(`/license-types/${id}`)
   }
 }
 
@@ -116,6 +116,25 @@ export const productAPI = {
   }
 }
 
+export const publicAPI = {
+  createPlugin(data) {
+    return api.post('/public/plugins', data)
+  },
+  uploadPlugin(data) {
+    return api.post('/public/plugins/upload', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+  },
+  getProducts(params = {}) {
+    return api.get('/public/products', { params })
+  },
+  getLicenseTypes(params = {}) {
+    return api.get('/public/license-types', { params })
+  }
+}
+
 export const pluginAPI = {
   getAll(params = {}) {
     return api.get('/plugins', { params })
@@ -131,6 +150,15 @@ export const pluginAPI = {
   },
   updateStatus(id, data) {
     return api.put(`/plugins/${id}/status`, data)
+  },
+  sign(id) {
+    return api.put(`/plugins/${id}/sign`)
+  },
+  publish(id) {
+    return api.put(`/plugins/${id}/publish`)
+  },
+  disable(id) {
+    return api.put(`/plugins/${id}/disable`)
   },
   delete(id) {
     return api.delete(`/plugins/${id}`)

@@ -23,7 +23,7 @@ func Failed(ctx *gin.Context, errCode int32, msg string) {
 		msg = errCodeMap[errCode].msgCn
 	}
 	ctx.JSON(
-		http.StatusOK,
+		http.StatusServiceUnavailable,
 		gin.H{
 			"code": errCode,
 			"msg":  msg,

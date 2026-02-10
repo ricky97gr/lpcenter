@@ -11,13 +11,13 @@ import (
 	"github.com/ricky97gr/lpcenter/server/utils"
 )
 
-type DownloadRequest struct {
+type RecordDownloadRequest struct {
 	PluginUUID string `json:"pluginUuid" binding:"required"`
 	License    string `json:"license" binding:"required"`
 }
 
 func RecordDownload(c *gin.Context) {
-	var req DownloadRequest
+	var req RecordDownloadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Logger.Errorw("RecordDownload parameter error", "error", err)
 		response.Failed(c, http.StatusBadRequest, "参数错误")
@@ -61,10 +61,10 @@ func RecordDownload(c *gin.Context) {
 	userAgent := c.GetHeader("User-Agent")
 
 	download := models.PluginDownload{
-		PluginID:    plugin.ID,
-		License:     req.License,
-		IP:          clientIP,
-		UserAgent:   userAgent,
+		PluginID:     plugin.ID,
+		License:      req.License,
+		IP:           clientIP,
+		UserAgent:    userAgent,
 		DownloadedAt: time.Now(),
 	}
 

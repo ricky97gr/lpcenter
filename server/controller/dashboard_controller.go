@@ -12,7 +12,7 @@ import (
 
 type DashboardStats struct {
 	TotalProducts    int64 `json:"totalProducts"`
-	TotalVersions    int64 `json:"totalVersions"`
+	TotalLicenseTypes int64 `json:"totalLicenseTypes"`
 	TotalPlugins     int64 `json:"totalPlugins"`
 	TotalLicenses    int64 `json:"totalLicenses"`
 	PendingLicenses  int64 `json:"pendingLicenses"`
@@ -40,7 +40,7 @@ func GetDashboardStats(c *gin.Context) {
 	var stats DashboardStats
 
 	db.Model(&models.Product{}).Count(&stats.TotalProducts)
-	db.Model(&models.Version{}).Count(&stats.TotalVersions)
+	db.Model(&models.LicenseType{}).Count(&stats.TotalLicenseTypes)
 	db.Model(&models.Plugin{}).Count(&stats.TotalPlugins)
 	db.Model(&models.License{}).Count(&stats.TotalLicenses)
 	db.Model(&models.License{}).Where("status = ?", "pending").Count(&stats.PendingLicenses)

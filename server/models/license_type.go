@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-type Version struct {
+type LicenseType struct {
 	ID        uint      `json:"id" gorm:"primaryKey;autoIncrement"`
 	UUID      string    `json:"uuid" gorm:"column:uuid;type:varchar(36);uniqueIndex"`
 	Name      string    `json:"name" gorm:"column:name;type:varchar(50);not null;uniqueIndex"`
@@ -13,6 +13,6 @@ type Version struct {
 	UpdatedAt time.Time `json:"updatedAt" gorm:"column:updated_at"`
 }
 
-func (Version) TableName() string {
-	return "versions"
+func (LicenseType) TableName() string {
+	return "license_types"
 }

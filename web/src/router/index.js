@@ -9,6 +9,12 @@ const routes = [
     meta: { title: '登录' }
   },
   {
+    path: '/upload',
+    name: 'PluginUpload',
+    component: () => import('../views/PluginUpload.vue'),
+    meta: { title: '插件上传', public: true }
+  },
+  {
     path: '/',
     name: 'Layout',
     component: MainLayout,
@@ -21,9 +27,9 @@ const routes = [
         meta: { title: '概览' }
       },
       {
-        path: 'versions',
-        name: 'VersionManagement',
-        component: () => import('../views/VersionManagement.vue'),
+        path: 'license-types',
+        name: 'LicenseTypeManagement',
+        component: () => import('../views/LicenseTypeManagement.vue'),
         meta: { title: '授权类型管理' }
       },
       {
@@ -72,7 +78,9 @@ router.beforeEach((to, from, next) => {
     document.title = `${to.meta.title} - 插件授权中心`
   }
   
-  if (to.path !== '/login' && !token) {
+  if (to.meta.public) {
+    next()
+  } else if (to.path !== '/login' && !token) {
     next('/login')
   } else if (to.path === '/login' && token) {
     next('/dashboard')

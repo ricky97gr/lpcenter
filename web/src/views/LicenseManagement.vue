@@ -17,9 +17,14 @@
         <template v-if="column.key === 'product'">
           {{ record.product?.name || '-' }}
         </template>
-        <template v-if="column.key === 'version'">
-          <a-tag :color="getVersionColor(record.version)">
-            {{ getVersionText(record.version) }}
+        <template v-if="column.key === 'licenseType'">
+          <a-tag :color="getLicenseTypeColor(record.licenseType)">
+            {{ getLicenseTypeText(record.licenseType) }}
+          </a-tag>
+        </template>
+        <template v-if="column.key === 'licensePoints'">
+          <a-tag color="blue">
+            {{ record.licensePoints }}
           </a-tag>
         </template>
         <template v-if="column.key === 'action'">
@@ -83,6 +88,12 @@
         <a-form-item label="序列号">
           <a-input :value="currentLicense.serialNumber" readonly />
         </a-form-item>
+        <a-form-item label="授权类型">
+          <a-input :value="getLicenseTypeText(currentLicense.licenseType)" readonly />
+        </a-form-item>
+        <a-form-item label="授权点数">
+          <a-input :value="currentLicense.licensePoints" readonly />
+        </a-form-item>
         <a-form-item label="授权字符串">
           <a-textarea
             :value="currentLicense.licenseString"
@@ -110,14 +121,16 @@
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { DownloadOutlined, EyeOutlined, CopyOutlined } from '@ant-design/icons-vue'
-import { licenseAPI, versionAPI } from '../api'
+import { licenseAPI, licenseTypeAPI } from '../api'
 
 const loading = ref(false)
 const licenses = ref([])
-const versions = ref([])
+const licenseTypes = ref([])
 const viewModalVisible = ref(false)
 const currentLicense = reactive({
   serialNumber: '',
+  licenseType: '',
+  licensePoints: 0,
   licenseString: ''
 })
 
@@ -133,7 +146,8 @@ const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
   { title: '序列号', dataIndex: 'serialNumber', key: 'serialNumber' },
   { title: '产品', dataIndex: 'product', key: 'product' },
-  { title: '授权类型', dataIndex: 'version', key: 'version', width: 120 },
+  { title: '授权类型', dataIndex: 'licenseType', key: 'licenseType', width: 120 },
+  { title: '授权点数', dataIndex: 'licensePoints', key: 'licensePoints', width: 100 },
   { title: '有效期', dataIndex: 'expiryDate', key: 'expiryDate', width: 120 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '备注', dataIndex: 'remarks', key: 'remarks', ellipsis: true },
@@ -159,7 +173,7 @@ const getStatusText = (status) => {
   return texts[status] || status
 }
 
-const getVersionColor = (version) => {
+const getLicenseTypeColor = (licenseType) => {
   const colors = {
     normal: 'blue',
     pro: 'green',
@@ -167,12 +181,25 @@ const getVersionColor = (version) => {
     max: 'red',
     enterprise: 'purple'
   }
-  return colors[version] || 'default'
+  return colors[licenseType] || 'default'
 }
 
-const getVersionText = (version) => {
-  const found = versions.value.find(v => v.code === version)
-  return found ? found.name : version
+const getLicenseTypeText = (licenseType) => {
+  // 首先从加载的授权类型中查找
+  const found = licenseTypes.value.find(lt => lt.code === licenseType)
+  if (found) {
+    return found.name
+  }
+  
+  // 作为备用，使用硬编码映射
+  const texts = {
+    normal: '普通版',
+    pro: '专业版',
+    plus: '增强版',
+    max: '高级版',
+    enterprise: '企业版'
+  }
+  return texts[licenseType] || licenseType
 }
 
 const loadLicenses = async () => {
@@ -199,17 +226,17 @@ const loadLicenses = async () => {
   }
 }
 
-const loadVersions = async () => {
+const loadLicenseTypes = async () => {
   try {
-    const response = await versionAPI.getAll()
-    console.log('Versions response:', response)
+    const response = await licenseTypeAPI.getAll()
+    console.log('License types response:', response)
     if (response.data && response.data.result) {
-      versions.value = response.data.result.filter(v => v.isPaid === true)
+      licenseTypes.value = response.data.result
     } else {
-      versions.value = []
+      licenseTypes.value = []
     }
   } catch (error) {
-    console.error('Load versions error:', error)
+    console.error('Load license types error:', error)
   }
 }
 
@@ -273,6 +300,8 @@ const viewLicense = async (id, serialNumber) => {
     if (response.data && response.data.result) {
       Object.assign(currentLicense, {
         serialNumber: serialNumber,
+        licenseType: response.data.result.licenseType || '',
+        licensePoints: response.data.result.licensePoints || 0,
         licenseString: response.data.result.licenseString || ''
       })
       viewModalVisible.value = true
@@ -301,7 +330,7 @@ const handleTableChange = (pag) => {
 
 onMounted(() => {
   loadLicenses()
-  loadVersions()
+  loadLicenseTypes()
 })
 </script>
 

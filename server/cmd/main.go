@@ -29,6 +29,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	router.Start()
+	go router.Start()
+	go router.StartDownloadServer()
+
 	select {}
 }
