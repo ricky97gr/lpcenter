@@ -54,14 +54,14 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateToken(user.ID, user.Username)
+	token, err := utils.GenerateToken(user.UUID, user.Username)
 	if err != nil {
 		utils.Logger.Errorf("Login generate token failed, username: %s, error: %v", req.Username, err)
 		response.Failed(c, http.StatusInternalServerError, "生成令牌失败")
 		return
 	}
 
-	utils.Logger.Infof("Login success, userId: %d, username: %s", user.ID, user.Username)
+	utils.Logger.Infof("Login success, userId: %s, username: %s", user.UUID, user.Username)
 	response.Success(c, LoginResponse{
 		Token: token,
 		User:  toUserResponse(user),

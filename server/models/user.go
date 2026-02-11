@@ -3,8 +3,7 @@ package models
 import "time"
 
 type User struct {
-	ID        uint      `json:"id" gorm:"primaryKey;autoIncrement"`
-	UUID      string    `json:"uuid" gorm:"column:uuid;type:varchar(36);uniqueIndex"`
+	UUID      string    `json:"uuid" gorm:"primaryKey;column:uuid;type:varchar(36);uniqueIndex;not null"`
 	Username  string    `json:"username" gorm:"column:username;type:varchar(50);uniqueIndex;not null"`
 	Email     string    `json:"email" gorm:"column:email;type:varchar(100);uniqueIndex;not null"`
 	Password  string    `json:"-" gorm:"column:password;type:varchar(255);not null"`

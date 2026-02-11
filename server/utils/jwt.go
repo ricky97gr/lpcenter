@@ -10,12 +10,12 @@ import (
 var jwtSecret = []byte("lpcenter_secret_key")
 
 type Claims struct {
-	UserID   uint   `json:"user_id"`
+	UserID   string `json:"user_id"`
 	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID uint, username string) (string, error) {
+func GenerateToken(userID string, username string) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 
 	claims := &Claims{

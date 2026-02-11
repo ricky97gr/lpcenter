@@ -19,7 +19,7 @@ type UserRequest struct {
 }
 
 type UserResponse struct {
-	ID        uint   `json:"id"`
+	ID        string `json:"id"`
 	UUID      string `json:"uuid"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`
@@ -29,7 +29,7 @@ type UserResponse struct {
 
 func toUserResponse(user models.User) UserResponse {
 	return UserResponse{
-		ID:        user.ID,
+		ID:        user.UUID,
 		UUID:      user.UUID,
 		Username:  user.Username,
 		Email:     user.Email,
@@ -98,7 +98,7 @@ func GetUser(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("GetUser success", "userId", user.ID)
+	utils.Logger.Infow("GetUser success", "userId", user.UUID)
 	response.Success(c, toUserResponse(user), 1)
 }
 
@@ -142,7 +142,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("CreateUser success", "userId", user.ID, "username", user.Username)
+	utils.Logger.Infow("CreateUser success", "userId", user.UUID, "username", user.Username)
 	response.Success(c, toUserResponse(user), 1)
 }
 
@@ -188,7 +188,7 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("UpdateUser success", "userId", user.ID)
+	utils.Logger.Infow("UpdateUser success", "userId", user.UUID)
 	response.Success(c, toUserResponse(user), 1)
 }
 

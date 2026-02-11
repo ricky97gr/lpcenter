@@ -56,7 +56,7 @@ func CreateLicenseType(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("CreateLicenseType success", "licenseTypeId", licenseType.ID, "name", licenseType.Name)
+	utils.Logger.Infow("CreateLicenseType success", "licenseTypeId", licenseType.UUID, "name", licenseType.Name)
 	response.Success(c, licenseType, 1)
 }
 
@@ -110,13 +110,13 @@ func GetLicenseType(c *gin.Context) {
 
 	var licenseType models.LicenseType
 
-	if err := db.First(&licenseType, id).Error; err != nil {
+	if err := db.First(&licenseType, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("GetLicenseType not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "授权类型不存在")
 		return
 	}
 
-	utils.Logger.Infow("GetLicenseType success", "licenseTypeId", licenseType.ID)
+	utils.Logger.Infow("GetLicenseType success", "licenseTypeId", licenseType.UUID)
 	response.Success(c, licenseType, 1)
 }
 
@@ -138,7 +138,7 @@ func UpdateLicenseType(c *gin.Context) {
 
 	var licenseType models.LicenseType
 
-	if err := db.First(&licenseType, id).Error; err != nil {
+	if err := db.First(&licenseType, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("UpdateLicenseType not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "授权类型不存在")
 		return
@@ -162,7 +162,7 @@ func UpdateLicenseType(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("UpdateLicenseType success", "licenseTypeId", licenseType.ID)
+	utils.Logger.Infow("UpdateLicenseType success", "licenseTypeId", licenseType.UUID)
 	response.Success(c, licenseType, 1)
 }
 
@@ -175,7 +175,7 @@ func DeleteLicenseType(c *gin.Context) {
 		return
 	}
 
-	if err := db.Delete(&models.LicenseType{}, id).Error; err != nil {
+	if err := db.Where("uuid = ?", id).Delete(&models.LicenseType{}).Error; err != nil {
 		utils.Logger.Errorw("DeleteLicenseType failed", "id", id, "error", err)
 		response.Failed(c, http.StatusInternalServerError, "删除授权类型失败")
 		return

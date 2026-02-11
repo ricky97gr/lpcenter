@@ -61,7 +61,7 @@ func RecordDownload(c *gin.Context) {
 	userAgent := c.GetHeader("User-Agent")
 
 	download := models.PluginDownload{
-		PluginID:     plugin.ID,
+		PluginUUID:   plugin.UUID,
 		License:      req.License,
 		IP:           clientIP,
 		UserAgent:    userAgent,
@@ -74,7 +74,7 @@ func RecordDownload(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("RecordDownload success", "pluginId", plugin.ID, "license", req.License, "ip", clientIP)
+	utils.Logger.Infow("RecordDownload success", "pluginId", plugin.UUID, "license", req.License, "ip", clientIP)
 	response.Success(c, gin.H{
 		"downloadUrl": plugin.DownloadURL,
 		"fileName":    plugin.FilePath,
@@ -98,7 +98,7 @@ func GetPluginDownloadStats(c *gin.Context) {
 	}
 
 	var totalDownloads int64
-	if err := db.Model(&models.PluginDownload{}).Where("plugin_id = ?", plugin.ID).Count(&totalDownloads).Error; err != nil {
+	if err := db.Model(&models.PluginDownload{}).Where("plugin_uuid = ?", plugin.UUID).Count(&totalDownloads).Error; err != nil {
 		utils.Logger.Errorw("GetPluginDownloadStats count failed", "error", err)
 		response.Failed(c, http.StatusInternalServerError, "获取下载统计失败")
 		return
@@ -106,14 +106,14 @@ func GetPluginDownloadStats(c *gin.Context) {
 
 	var todayDownloads int64
 	today := time.Now().Truncate(24 * time.Hour)
-	if err := db.Model(&models.PluginDownload{}).Where("plugin_id = ? AND downloaded_at >= ?", plugin.ID, today).Count(&todayDownloads).Error; err != nil {
+	if err := db.Model(&models.PluginDownload{}).Where("plugin_uuid = ? AND downloaded_at >= ?", plugin.UUID, today).Count(&todayDownloads).Error; err != nil {
 		utils.Logger.Errorw("GetPluginDownloadStats today count failed", "error", err)
 		response.Failed(c, http.StatusInternalServerError, "获取下载统计失败")
 		return
 	}
 
 	var downloads []models.PluginDownload
-	if err := db.Where("plugin_id = ?", plugin.ID).Order("downloaded_at desc").Limit(100).Find(&downloads).Error; err != nil {
+	if err := db.Where("plugin_uuid = ?", plugin.UUID).Order("downloaded_at desc").Limit(100).Find(&downloads).Error; err != nil {
 		utils.Logger.Errorw("GetPluginDownloadStats find failed", "error", err)
 		response.Failed(c, http.StatusInternalServerError, "获取下载记录失败")
 		return

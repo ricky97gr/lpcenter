@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -19,7 +18,7 @@ import (
 )
 
 type PluginRequest struct {
-	ProductID         uint   `json:"productId" binding:"required"`
+	ProductUUID       string `json:"productUuid" binding:"required"`
 	LicenseType       string `json:"licenseType" binding:"required"`
 	Name              string `json:"name" binding:"required"`
 	Version           string `json:"version" binding:"required"`
@@ -36,8 +35,8 @@ type PluginRequest struct {
 }
 
 type DownloadRequest struct {
-	PluginID uint   `json:"pluginId" binding:"required"`
-	License  string `json:"license" binding:"required"`
+	UUID    string `json:"uuid" binding:"required"`
+	License string `json:"license" binding:"required"`
 }
 
 func CreatePlugin(c *gin.Context) {
@@ -56,8 +55,8 @@ func CreatePlugin(c *gin.Context) {
 	}
 
 	var product models.Product
-	if err := db.First(&product, req.ProductID).Error; err != nil {
-		utils.Logger.Errorw("CreatePlugin product not found", "productId", req.ProductID, "error", err)
+	if err := db.First(&product, "uuid = ?", req.ProductUUID).Error; err != nil {
+		utils.Logger.Errorw("CreatePlugin product not found", "productUuid", req.ProductUUID, "error", err)
 		response.Failed(c, http.StatusNotFound, "产品不存在")
 		return
 	}
@@ -85,7 +84,7 @@ func CreatePlugin(c *gin.Context) {
 
 	plugin := models.Plugin{
 		UUID:              uuid.New().String(),
-		ProductID:         req.ProductID,
+		ProductUUID:       req.ProductUUID,
 		LicenseType:       req.LicenseType,
 		Code:              code,
 		Name:              req.Name,
@@ -107,7 +106,7 @@ func CreatePlugin(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("CreatePlugin success", "pluginId", plugin.ID, "name", plugin.Code)
+	utils.Logger.Infow("CreatePlugin success", "pluginId", plugin.UUID, "name", plugin.Code)
 	response.Success(c, plugin, 1)
 }
 
@@ -148,7 +147,7 @@ func GetAllPlugins(c *gin.Context) {
 
 	for i := range plugins {
 		var downloadCount int64
-		db.Model(&models.PluginDownload{}).Where("plugin_id = ?", plugins[i].ID).Count(&downloadCount)
+		db.Model(&models.PluginDownload{}).Where("plugin_uuid = ?", plugins[i].UUID).Count(&downloadCount)
 		plugins[i].DownloadCount = int(downloadCount)
 	}
 
@@ -193,7 +192,7 @@ func GetPublicPlugins(c *gin.Context) {
 
 	for i := range plugins {
 		var downloadCount int64
-		db.Model(&models.PluginDownload{}).Where("plugin_id = ?", plugins[i].ID).Count(&downloadCount)
+		db.Model(&models.PluginDownload{}).Where("plugin_uuid = ?", plugins[i].UUID).Count(&downloadCount)
 		plugins[i].DownloadCount = int(downloadCount)
 	}
 
@@ -212,13 +211,13 @@ func GetPlugin(c *gin.Context) {
 
 	var plugin models.Plugin
 
-	if err := db.Preload("Product").First(&plugin, id).Error; err != nil {
+	if err := db.Preload("Product").First(&plugin, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("GetPlugin not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "插件不存在")
 		return
 	}
 
-	utils.Logger.Infow("GetPlugin success", "pluginId", plugin.ID)
+	utils.Logger.Infow("GetPlugin success", "pluginId", plugin.UUID)
 	response.Success(c, plugin, 1)
 }
 
@@ -240,20 +239,20 @@ func UpdatePlugin(c *gin.Context) {
 
 	var plugin models.Plugin
 
-	if err := db.First(&plugin, id).Error; err != nil {
+	if err := db.First(&plugin, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("UpdatePlugin not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "插件不存在")
 		return
 	}
 
 	var product models.Product
-	if err := db.First(&product, req.ProductID).Error; err != nil {
-		utils.Logger.Errorw("UpdatePlugin product not found", "productId", req.ProductID, "error", err)
+	if err := db.First(&product, "uuid = ?", req.ProductUUID).Error; err != nil {
+		utils.Logger.Errorw("UpdatePlugin product not found", "productUuid", req.ProductUUID, "error", err)
 		response.Failed(c, http.StatusNotFound, "产品不存在")
 		return
 	}
 
-	plugin.ProductID = req.ProductID
+	plugin.ProductUUID = req.ProductUUID
 	plugin.LicenseType = req.LicenseType
 	// 保持原来的插件编号
 	plugin.Name = req.Name
@@ -276,7 +275,7 @@ func UpdatePlugin(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("UpdatePlugin success", "pluginId", plugin.ID)
+	utils.Logger.Infow("UpdatePlugin success", "pluginId", plugin.UUID)
 	response.Success(c, plugin, 1)
 }
 
@@ -291,7 +290,7 @@ func DeletePlugin(c *gin.Context) {
 
 	// 先获取插件信息，用于删除文件
 	var plugin models.Plugin
-	if err := db.First(&plugin, id).Error; err == nil {
+	if err := db.First(&plugin, "uuid = ?", id).Error; err == nil {
 		// 删除对应的文件
 		if plugin.FilePath != "" {
 			if err := os.Remove(plugin.FilePath); err != nil {
@@ -301,7 +300,7 @@ func DeletePlugin(c *gin.Context) {
 		}
 	}
 
-	if err := db.Delete(&models.Plugin{}, id).Error; err != nil {
+	if err := db.Where("uuid = ?", id).Delete(&models.Plugin{}).Error; err != nil {
 		utils.Logger.Errorw("DeletePlugin failed", "id", id, "error", err)
 		response.Failed(c, http.StatusInternalServerError, "删除插件失败")
 		return
@@ -331,7 +330,7 @@ func UpdatePluginStatus(c *gin.Context) {
 
 	var plugin models.Plugin
 
-	if err := db.First(&plugin, id).Error; err != nil {
+	if err := db.First(&plugin, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("UpdatePluginStatus not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "插件不存在")
 		return
@@ -345,7 +344,7 @@ func UpdatePluginStatus(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("UpdatePluginStatus success", "pluginId", plugin.ID, "status", plugin.Status)
+	utils.Logger.Infow("UpdatePluginStatus success", "pluginId", plugin.UUID, "status", plugin.Status)
 	response.Success(c, plugin, 1)
 }
 
@@ -360,7 +359,7 @@ func SignPlugin(c *gin.Context) {
 
 	var plugin models.Plugin
 
-	if err := db.Preload("Product").First(&plugin, id).Error; err != nil {
+	if err := db.Preload("Product").First(&plugin, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("SignPlugin not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "插件不存在")
 		return
@@ -400,7 +399,7 @@ func SignPlugin(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("SignPlugin success", "pluginId", plugin.ID, "code", plugin.Code, "filePath", plugin.FilePath)
+	utils.Logger.Infow("SignPlugin success", "pluginId", plugin.UUID, "code", plugin.Code, "filePath", plugin.FilePath)
 	response.Success(c, plugin, 1)
 }
 
@@ -415,7 +414,7 @@ func PublishPlugin(c *gin.Context) {
 
 	var plugin models.Plugin
 
-	if err := db.First(&plugin, id).Error; err != nil {
+	if err := db.First(&plugin, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("PublishPlugin not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "插件不存在")
 		return
@@ -429,7 +428,7 @@ func PublishPlugin(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("PublishPlugin success", "pluginId", plugin.ID)
+	utils.Logger.Infow("PublishPlugin success", "pluginId", plugin.UUID)
 	response.Success(c, plugin, 1)
 }
 
@@ -444,7 +443,7 @@ func DisablePlugin(c *gin.Context) {
 
 	var plugin models.Plugin
 
-	if err := db.First(&plugin, id).Error; err != nil {
+	if err := db.First(&plugin, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("DisablePlugin not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "插件不存在")
 		return
@@ -458,15 +457,15 @@ func DisablePlugin(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("DisablePlugin success", "pluginId", plugin.ID)
+	utils.Logger.Infow("DisablePlugin success", "pluginId", plugin.UUID)
 	response.Success(c, plugin, 1)
 }
 
 func UploadPlugin(c *gin.Context) {
 	// 解析表单数据
-	productID, err := strconv.ParseUint(c.PostForm("productId"), 10, 32)
-	if err != nil {
-		response.Failed(c, http.StatusBadRequest, "产品ID参数错误")
+	productUUID := c.PostForm("productUuid")
+	if productUUID == "" {
+		response.Failed(c, http.StatusBadRequest, "产品UUID参数错误")
 		return
 	}
 
@@ -517,7 +516,7 @@ func UploadPlugin(c *gin.Context) {
 
 	// 检查产品是否存在
 	var product models.Product
-	if err := db.First(&product, uint(productID)).Error; err != nil {
+	if err := db.First(&product, "uuid = ?", productUUID).Error; err != nil {
 		response.Failed(c, http.StatusNotFound, "产品不存在")
 		return
 	}
@@ -535,7 +534,7 @@ func UploadPlugin(c *gin.Context) {
 	// 创建插件记录
 	plugin := models.Plugin{
 		UUID:              uuid.New().String(),
-		ProductID:         uint(productID),
+		ProductUUID:       productUUID,
 		LicenseType:       licenseType,
 		Code:              code,
 		Name:              name,
@@ -577,7 +576,7 @@ func CreateDownloadTask(c *gin.Context) {
 
 	// 查找插件
 	var plugin models.Plugin
-	if err := db.First(&plugin, req.PluginID).Error; err != nil {
+	if err := db.First(&plugin, req.UUID).Error; err != nil {
 		response.Failed(c, http.StatusNotFound, "插件不存在")
 		return
 	}
@@ -608,14 +607,14 @@ func CreateDownloadTask(c *gin.Context) {
 	}
 
 	// 验证许可证产品是否与插件产品匹配
-	if license.ProductID != plugin.ProductID {
+	if license.ProductUUID != plugin.ProductUUID {
 		response.Failed(c, http.StatusBadRequest, "许可证产品与插件产品不匹配")
 		return
 	}
 
 	// 检查是否已存在相同的完成任务
 	var existingTask models.DownloadTask
-	if err := db.Where("plugin_id = ? AND license = ? AND status = ?", req.PluginID, req.License, models.DownloadTaskStatusCompleted).First(&existingTask).Error; err == nil {
+	if err := db.Where("uuid = ? AND license = ? AND status = ?", req.UUID, req.License, models.DownloadTaskStatusCompleted).First(&existingTask).Error; err == nil {
 		response.Failed(c, http.StatusBadRequest, "该插件已下载完成，不允许再次下载")
 		return
 	}
@@ -637,15 +636,15 @@ func CreateDownloadTask(c *gin.Context) {
 	userAgent := c.GetHeader("User-Agent")
 
 	task := models.DownloadTask{
-		UUID:      taskUUID,
-		PluginID:  req.PluginID,
-		License:   req.License,
-		FilePath:  plugin.FilePath,
-		FileSize:  fileInfo.Size(),
-		Status:    models.DownloadTaskStatusPending,
-		IP:        clientIP,
-		UserAgent: userAgent,
-		StartedAt: time.Now(),
+		UUID:       taskUUID,
+		PluginUUID: req.UUID,
+		License:    req.License,
+		FilePath:   plugin.FilePath,
+		FileSize:   fileInfo.Size(),
+		Status:     models.DownloadTaskStatusPending,
+		IP:         clientIP,
+		UserAgent:  userAgent,
+		StartedAt:  time.Now(),
 	}
 
 	if err := db.Create(&task).Error; err != nil {
@@ -863,7 +862,7 @@ func DownloadPluginFile(c *gin.Context) {
 	}
 
 	// 验证许可证产品是否与插件产品匹配
-	if licenseObj.ProductID != plugin.ProductID {
+	if licenseObj.ProductUUID != plugin.ProductUUID {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "License product does not match plugin product"})
 		return
 	}
@@ -893,15 +892,15 @@ func DownloadPluginFile(c *gin.Context) {
 		userAgent := c.GetHeader("User-Agent")
 
 		task := models.DownloadTask{
-			UUID:      taskUUID,
-			PluginID:  plugin.ID,
-			License:   license,
-			FilePath:  filePath,
-			FileSize:  fileInfo.Size(),
-			Status:    models.DownloadTaskStatusPending,
-			IP:        clientIP,
-			UserAgent: userAgent,
-			StartedAt: time.Now(),
+			UUID:       taskUUID,
+			PluginUUID: plugin.UUID,
+			License:    license,
+			FilePath:   filePath,
+			FileSize:   fileInfo.Size(),
+			Status:     models.DownloadTaskStatusPending,
+			IP:         clientIP,
+			UserAgent:  userAgent,
+			StartedAt:  time.Now(),
 		}
 
 		if err := db.Create(&task).Error; err != nil {

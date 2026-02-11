@@ -52,7 +52,7 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("CreateProduct success", "productId", product.ID, "name", product.Name)
+	utils.Logger.Infow("CreateProduct success", "productId", product.UUID, "name", product.Name)
 	response.Success(c, product, 1)
 }
 
@@ -106,13 +106,13 @@ func GetProduct(c *gin.Context) {
 
 	var product models.Product
 
-	if err := db.Preload("Plugins").First(&product, id).Error; err != nil {
+	if err := db.First(&product, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("GetProduct not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "产品不存在")
 		return
 	}
 
-	utils.Logger.Infow("GetProduct success", "productId", product.ID)
+	utils.Logger.Infow("GetProduct success", "productId", product.UUID)
 	response.Success(c, product, 1)
 }
 
@@ -134,7 +134,7 @@ func UpdateProduct(c *gin.Context) {
 
 	var product models.Product
 
-	if err := db.First(&product, id).Error; err != nil {
+	if err := db.First(&product, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("UpdateProduct not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "产品不存在")
 		return
@@ -153,7 +153,7 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("UpdateProduct success", "productId", product.ID)
+	utils.Logger.Infow("UpdateProduct success", "productId", product.UUID)
 	response.Success(c, product, 1)
 }
 
@@ -166,7 +166,7 @@ func DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	if err := db.Delete(&models.Product{}, id).Error; err != nil {
+	if err := db.Where("uuid = ?", id).Delete(&models.Product{}).Error; err != nil {
 		utils.Logger.Errorw("DeleteProduct failed", "id", id, "error", err)
 		response.Failed(c, http.StatusInternalServerError, "删除产品失败")
 		return

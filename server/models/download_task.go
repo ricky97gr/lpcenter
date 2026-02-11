@@ -3,10 +3,8 @@ package models
 import "time"
 
 type DownloadTask struct {
-	ID              uint       `json:"id" gorm:"primaryKey;autoIncrement"`
-	UUID            string     `json:"uuid" gorm:"column:uuid;type:varchar(36);uniqueIndex;not null"`
-	PluginID        uint       `json:"pluginId" gorm:"column:plugin_id;not null;index"`
-	Plugin          *Plugin    `json:"plugin" gorm:"foreignKey:PluginID"`
+	UUID            string     `json:"uuid" gorm:"primaryKey;column:uuid;type:varchar(36);uniqueIndex;not null"`
+	PluginUUID      string     `json:"pluginUuid" gorm:"column:plugin_uuid;type:varchar(36);not null;index"`
 	License         string     `json:"license" gorm:"column:license;type:varchar(255);not null"`
 	FilePath        string     `json:"filePath" gorm:"column:file_path;type:varchar(512);not null"`
 	FileSize        int64      `json:"fileSize" gorm:"column:file_size;not null"`

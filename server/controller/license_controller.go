@@ -15,7 +15,7 @@ import (
 
 type LicenseRequest struct {
 	SerialNumber  string `json:"serialNumber" binding:"required"`
-	ProductID     uint   `json:"productId" binding:"required"`
+	ProductUUID   string `json:"productUuid" binding:"required"`
 	LicenseType   string `json:"licenseType" binding:"required"`
 	LicensePoints int    `json:"licensePoints" binding:"required"`
 	ExpiryDate    string `json:"expiryDate" binding:"required"`
@@ -38,8 +38,8 @@ func CreateLicense(c *gin.Context) {
 	}
 
 	var product models.Product
-	if err := db.First(&product, req.ProductID).Error; err != nil {
-		utils.Logger.Errorw("CreateLicense product not found", "productId", req.ProductID, "error", err)
+	if err := db.First(&product, "uuid = ?", req.ProductUUID).Error; err != nil {
+		utils.Logger.Errorw("CreateLicense product not found", "productUuid", req.ProductUUID, "error", err)
 		response.Failed(c, http.StatusNotFound, "产品不存在")
 		return
 	}
@@ -47,7 +47,7 @@ func CreateLicense(c *gin.Context) {
 	license := models.License{
 		UUID:          uuid.New().String(),
 		SerialNumber:  req.SerialNumber,
-		ProductID:     req.ProductID,
+		ProductUUID:   req.ProductUUID,
 		LicenseType:   req.LicenseType,
 		LicensePoints: req.LicensePoints,
 		ExpiryDate:    parseExpiryDate(req.ExpiryDate),
@@ -61,7 +61,7 @@ func CreateLicense(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("CreateLicense success", "licenseId", license.ID, "serialNumber", license.SerialNumber)
+	utils.Logger.Infow("CreateLicense success", "licenseId", license.UUID, "serialNumber", license.SerialNumber)
 	response.Success(c, license, 1)
 }
 
@@ -115,13 +115,13 @@ func GetLicense(c *gin.Context) {
 
 	var license models.License
 
-	if err := db.Preload("Product").First(&license, id).Error; err != nil {
+	if err := db.Preload("Product").First(&license, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("GetLicense not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "授权不存在")
 		return
 	}
 
-	utils.Logger.Infow("GetLicense success", "licenseId", license.ID)
+	utils.Logger.Infow("GetLicense success", "licenseId", license.UUID)
 	response.Success(c, license, 1)
 }
 
@@ -143,21 +143,21 @@ func UpdateLicense(c *gin.Context) {
 
 	var license models.License
 
-	if err := db.First(&license, id).Error; err != nil {
+	if err := db.First(&license, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("UpdateLicense not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "授权不存在")
 		return
 	}
 
 	var product models.Product
-	if err := db.First(&product, req.ProductID).Error; err != nil {
-		utils.Logger.Errorw("UpdateLicense product not found", "productId", req.ProductID, "error", err)
+	if err := db.First(&product, "uuid = ?", req.ProductUUID).Error; err != nil {
+		utils.Logger.Errorw("UpdateLicense product not found", "productUuid", req.ProductUUID, "error", err)
 		response.Failed(c, http.StatusNotFound, "产品不存在")
 		return
 	}
 
 	license.SerialNumber = req.SerialNumber
-	license.ProductID = req.ProductID
+	license.ProductUUID = req.ProductUUID
 	license.LicenseType = req.LicenseType
 	license.LicensePoints = req.LicensePoints
 	license.ExpiryDate = parseExpiryDate(req.ExpiryDate)
@@ -169,7 +169,7 @@ func UpdateLicense(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("UpdateLicense success", "licenseId", license.ID)
+	utils.Logger.Infow("UpdateLicense success", "licenseId", license.UUID)
 	response.Success(c, license, 1)
 }
 
@@ -182,7 +182,7 @@ func DeleteLicense(c *gin.Context) {
 		return
 	}
 
-	if err := db.Delete(&models.License{}, id).Error; err != nil {
+	if err := db.Where("uuid = ?", id).Delete(&models.License{}).Error; err != nil {
 		utils.Logger.Errorw("DeleteLicense failed", "id", id, "error", err)
 		response.Failed(c, http.StatusInternalServerError, "删除授权失败")
 		return
@@ -202,21 +202,21 @@ func ApproveLicense(c *gin.Context) {
 	}
 
 	var license models.License
-	if err := db.Preload("Product").First(&license, id).Error; err != nil {
+	if err := db.Preload("Product").First(&license, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("ApproveLicense not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "授权不存在")
 		return
 	}
 
 	if license.Product == nil {
-		utils.Logger.Errorw("ApproveLicense product not found", "id", id, "productId", license.ProductID)
+		utils.Logger.Errorw("ApproveLicense product not found", "id", id, "productUuid", license.ProductUUID)
 		response.Failed(c, http.StatusNotFound, "产品不存在")
 		return
 	}
 
 	licenseData := map[string]interface{}{
 		"serialNumber":  license.SerialNumber,
-		"productId":     license.ProductID,
+		"productId":     license.ProductUUID,
 		"productName":   license.Product.Name,
 		"licenseType":   license.LicenseType,
 		"licensePoints": license.LicensePoints,
@@ -241,7 +241,7 @@ func ApproveLicense(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("ApproveLicense success", "licenseId", license.ID)
+	utils.Logger.Infow("ApproveLicense success", "licenseId", license.UUID)
 	response.Success(c, license, 1)
 }
 
@@ -255,7 +255,7 @@ func DownloadLicenseFile(c *gin.Context) {
 	}
 
 	var license models.License
-	if err := db.First(&license, id).Error; err != nil {
+	if err := db.First(&license, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("DownloadLicenseFile not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "授权不存在")
 		return
@@ -277,7 +277,7 @@ func DownloadLicenseFile(c *gin.Context) {
 	c.Header("Content-Disposition", "attachment; filename="+license.SerialNumber+".lic")
 	c.Data(http.StatusOK, "application/octet-stream", []byte(license.LicenseString))
 
-	utils.Logger.Infow("DownloadLicenseFile success", "licenseId", license.ID, "serialNumber", license.SerialNumber)
+	utils.Logger.Infow("DownloadLicenseFile success", "licenseId", license.UUID, "serialNumber", license.SerialNumber)
 }
 
 func RejectLicense(c *gin.Context) {
@@ -290,7 +290,7 @@ func RejectLicense(c *gin.Context) {
 	}
 
 	var license models.License
-	if err := db.First(&license, id).Error; err != nil {
+	if err := db.First(&license, "uuid = ?", id).Error; err != nil {
 		utils.Logger.Errorw("RejectLicense not found", "id", id, "error", err)
 		response.Failed(c, http.StatusNotFound, "授权不存在")
 		return
@@ -303,7 +303,7 @@ func RejectLicense(c *gin.Context) {
 		return
 	}
 
-	utils.Logger.Infow("RejectLicense success", "licenseId", license.ID)
+	utils.Logger.Infow("RejectLicense success", "licenseId", license.UUID)
 	response.Success(c, license, 1)
 }
 

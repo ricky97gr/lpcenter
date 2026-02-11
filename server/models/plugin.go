@@ -3,11 +3,10 @@ package models
 import "time"
 
 type Plugin struct {
-	ID                uint      `json:"id" gorm:"primaryKey;autoIncrement"`
-	UUID              string    `json:"uuid" gorm:"column:uuid;type:varchar(36);uniqueIndex"`
+	UUID              string    `json:"uuid" gorm:"primaryKey;column:uuid;type:varchar(36);uniqueIndex;not null"`
 	Name              string    `json:"name" gorm:"column:name;type:varchar(50);not null"`
-	ProductID         uint      `json:"productId" gorm:"column:product_id;not null"`
-	Product           *Product  `json:"product" gorm:"foreignKey:ProductID"`
+	ProductUUID       string    `json:"productUuid" gorm:"column:product_uuid;type:varchar(36);not null;index"`
+	Product           *Product  `json:"product" gorm:"foreignKey:ProductUUID;references:UUID"`
 	LicenseType       string    `json:"licenseType" gorm:"column:license_type;type:varchar(20);not null"`
 	Code              string    `json:"code" gorm:"column:code;type:varchar(50);not null;uniqueIndex"`
 	Version           string    `json:"version" gorm:"column:version;type:varchar(20);not null"`
