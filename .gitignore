@@ -1,1 +1,52 @@
-web/node_modules
+# Dependencies
+web/node_modules/
+web/package-lock.json
+web/yarn.lock
+web/pnpm-lock.yaml
+
+# Build outputs
+server/bin/
+web/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.out
+
+# Logs
+*.log
+logs/
+*.out
+*.err
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Uploads
+uploads/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+web_server.py
+web_server.log

@@ -9,7 +9,7 @@
       :data-source="products"
       :loading="loading"
       :pagination="pagination"
-      row-key="id"
+      row-key="uuid"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'status'">
@@ -22,7 +22,7 @@
             <a-button type="link" size="small" @click="handleEdit(record)">编辑</a-button>
             <a-popconfirm
               title="确定要删除这个产品吗？"
-              @confirm="handleDelete(record.id)"
+              @confirm="handleDelete(record.uuid)"
             >
               <a-button type="link" size="small" danger>删除</a-button>
             </a-popconfirm>
@@ -84,7 +84,7 @@ const pagination = reactive({
 })
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+  { title: 'UUID', dataIndex: 'uuid', key: 'uuid', width: 180 },
   { title: '产品名称', dataIndex: 'name', key: 'name' },
   { title: '产品编号', dataIndex: 'code', key: 'code' },
   { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true },
@@ -140,7 +140,7 @@ const showCreateModal = () => {
 
 const handleEdit = (record) => {
   isEdit.value = true
-  currentEditId.value = record.id
+  currentEditId.value = record.uuid
   Object.assign(formData, {
     name: record.name,
     code: record.code,

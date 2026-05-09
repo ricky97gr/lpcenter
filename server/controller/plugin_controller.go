@@ -80,7 +80,7 @@ func CreatePlugin(c *gin.Context) {
 	code := fmt.Sprintf("%s_%s_%d", productCode, req.LicenseType, time.Now().Unix())
 
 	// 生成下载链接
-	downloadURL := "http://localhost:8082/"
+	downloadURL := "http://localhost:9092/"
 
 	plugin := models.Plugin{
 		UUID:              uuid.New().String(),
@@ -529,7 +529,7 @@ func UploadPlugin(c *gin.Context) {
 	code := fmt.Sprintf("%s_%s_%d", productCode, licenseType, time.Now().Unix())
 
 	// 生成下载链接
-	downloadURL := fmt.Sprintf("http://localhost:8082/download/%s", filename)
+	downloadURL := fmt.Sprintf("http://localhost:9092/download/%s", filename)
 
 	// 创建插件记录
 	plugin := models.Plugin{
@@ -576,6 +576,7 @@ func CreateDownloadTask(c *gin.Context) {
 
 	// 查找插件
 	var plugin models.Plugin
+	fmt.Println("find plugin, uuid: ", req.UUID)
 	if err := db.First(&plugin, req.UUID).Error; err != nil {
 		response.Failed(c, http.StatusNotFound, "插件不存在")
 		return

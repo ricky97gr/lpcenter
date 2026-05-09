@@ -9,13 +9,13 @@
       :data-source="plugins"
       :loading="loading"
       :pagination="pagination"
-      row-key="id"
+      row-key="uuid"
       @change="handleTableChange"
     >
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'versionType'">
-          <a-tag :color="getVersionTypeColor(record.versionType)">
-            {{ getVersionTypeLabel(record.versionType) }}
+        <template v-if="column.key === 'licenseType'">
+          <a-tag :color="getVersionTypeColor(record.licenseType)">
+            {{ getVersionTypeLabel(record.licenseType) }}
           </a-tag>
         </template>
         <template v-if="column.key === 'status'">
@@ -43,36 +43,36 @@
                 <a-menu>
                   <a-menu-item 
                     v-if="record.status === 'pending' && !record.signed" 
-                    @click="handleSign(record.id)"
+                    @click="handleSign(record.uuid)"
                   >
                     签名
                   </a-menu-item>
                   <a-menu-item 
                     v-if="record.status === 'signed'" 
-                    @click="handlePublish(record.id)"
+                    @click="handlePublish(record.uuid)"
                   >
                     发布
                   </a-menu-item>
                   <a-menu-item 
                     v-if="record.status === 'pending' && !record.signed" 
-                    @click="handlePublish(record.id)"
+                    @click="handlePublish(record.uuid)"
                   >
                     直接发布
                   </a-menu-item>
                   <a-menu-item 
                     v-if="record.status === 'published'" 
-                    @click="handleDisable(record.id)"
+                    @click="handleDisable(record.uuid)"
                   >
                     停用
                   </a-menu-item>
                   <a-menu-item 
                     v-if="record.status === 'disabled'" 
-                    @click="handlePublish(record.id)"
+                    @click="handlePublish(record.uuid)"
                   >
                     重新发布
                   </a-menu-item>
                   <a-menu-item @click="handleEdit(record)">编辑</a-menu-item>
-                  <a-menu-item danger @click="handleDelete(record.id)">删除</a-menu-item>
+                  <a-menu-item danger @click="handleDelete(record.uuid)">删除</a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -106,8 +106,8 @@
               >
                 <a-select-option
                   v-for="product in products"
-                  :key="product.id"
-                  :value="product.id"
+                  :key="product.uuid"
+                  :value="product.uuid"
                 >
                   {{ product.name }} ({{ product.code }})
                 </a-select-option>
@@ -115,10 +115,10 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item label="版本类型" name="versionType">
+            <a-form-item label="授权类型" name="licenseType">
               <a-select 
-                v-model:value="formData.versionType" 
-                placeholder="请选择版本类型"
+                v-model:value="formData.licenseType" 
+                placeholder="请选择授权类型"
                 :loading="licenseTypeLoading"
                 show-search
                 :filter-option="filterLicenseTypeOption"
@@ -208,8 +208,8 @@
           {{ currentPlugin.version }}
         </a-descriptions-item>
         <a-descriptions-item label="授权类型">
-          <a-tag :color="getVersionTypeColor(currentPlugin.versionType)">
-            {{ getVersionTypeLabel(currentPlugin.versionType) }}
+          <a-tag :color="getVersionTypeColor(currentPlugin.licenseType)">
+            {{ getVersionTypeLabel(currentPlugin.licenseType) }}
           </a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="产品">
@@ -283,7 +283,7 @@ const columns = [
   { title: '插件名称', dataIndex: 'name', key: 'name' },
   { title: '产品', dataIndex: 'product', key: 'product' },
   { title: '版本号', dataIndex: 'version', key: 'version', width: 100 },
-  { title: '授权类型', dataIndex: 'versionType', key: 'versionType', width: 100 },
+  { title: '授权类型', dataIndex: 'licenseType', key: 'licenseType', width: 100 },
   { title: '作者', dataIndex: 'author', key: 'author', width: 100 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '下载量', dataIndex: 'downloadCount', key: 'downloadCount', width: 100 },
@@ -292,7 +292,7 @@ const columns = [
 
 const formData = reactive({
   productId: null,
-  versionType: null,
+  licenseType: null,
   code: '',
   name: '',
   version: '',
@@ -307,7 +307,7 @@ const formData = reactive({
 
 const rules = {
   productId: [{ required: true, message: '请选择产品', trigger: 'change' }],
-  versionType: [{ required: true, message: '请选择版本类型', trigger: 'change' }],
+  licenseType: [{ required: true, message: '请选择授权类型', trigger: 'change' }],
   code: [{ required: true, message: '请输入插件编号', trigger: 'blur' }],
   name: [{ required: true, message: '请输入插件名称', trigger: 'blur' }],
   version: [{ required: true, message: '请输入版本号', trigger: 'blur' }],
@@ -350,7 +350,7 @@ const getStatusText = (status) => {
 }
 
 const filterOption = (input, option) => {
-  const product = products.value.find(p => p.id === option.value)
+  const product = products.value.find(p => p.uuid === option.value)
   return product && (product.name.toLowerCase().includes(input.toLowerCase()) || 
                      product.code.toLowerCase().includes(input.toLowerCase()))
 }
@@ -426,7 +426,7 @@ const showCreateModal = () => {
   currentEditId.value = null
   Object.assign(formData, {
     productId: null,
-    versionType: null,
+    licenseType: null,
     code: '',
     name: '',
     version: '',
@@ -443,10 +443,10 @@ const showCreateModal = () => {
 
 const handleEdit = (record) => {
   isEdit.value = true
-  currentEditId.value = record.id
+  currentEditId.value = record.uuid
   Object.assign(formData, {
-    productId: record.productId,
-    versionType: record.versionType,
+    productId: record.productUuid,
+    licenseType: record.licenseType,
     code: record.code,
     name: record.name,
     version: record.version,

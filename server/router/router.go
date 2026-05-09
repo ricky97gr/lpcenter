@@ -116,7 +116,7 @@ func Start() {
 		}
 	}
 
-	go engine.Run(":8081")
+	go engine.Run(":9091")
 }
 
 func StartDownloadServer() {
@@ -129,5 +129,5 @@ func StartDownloadServer() {
 	engine.GET("/download/status/:taskId", controller.GetDownloadStatus)
 	engine.GET("/download/file", controller.DownloadFile)
 
-	engine.Run(":8082")
+	engine.Run(":9092")
 }

@@ -9,7 +9,7 @@
       :data-source="users"
       :loading="loading"
       :pagination="pagination"
-      row-key="id"
+      row-key="uuid"
       @change="handleTableChange"
     >
       <template #bodyCell="{ column, record }">
@@ -24,7 +24,7 @@
             <a-button type="link" size="small" @click="showResetPasswordModal(record)">重置密码</a-button>
             <a-popconfirm
               title="确定要删除这个用户吗？"
-              @confirm="handleDelete(record.id)"
+              @confirm="handleDelete(record.uuid)"
             >
               <a-button type="link" size="small" danger>删除</a-button>
             </a-popconfirm>
@@ -104,7 +104,7 @@ const pagination = reactive({
 })
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+  { title: 'UUID', dataIndex: 'uuid', key: 'uuid', width: 180 },
   { title: '用户名', dataIndex: 'username', key: 'username' },
   { title: '邮箱', dataIndex: 'email', key: 'email' },
   { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
@@ -193,7 +193,7 @@ const showCreateModal = () => {
 
 const handleEdit = (record) => {
   isEdit.value = true
-  currentEditId.value = record.id
+  currentEditId.value = record.uuid
   Object.assign(formData, {
     username: record.username,
     email: record.email,
@@ -203,7 +203,7 @@ const handleEdit = (record) => {
 }
 
 const showResetPasswordModal = (record) => {
-  resetPasswordUserId.value = record.id
+  resetPasswordUserId.value = record.uuid
   resetPasswordData.newPassword = ''
   resetPasswordVisible.value = true
 }

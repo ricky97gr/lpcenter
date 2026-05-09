@@ -16,9 +16,9 @@
         >
           <a-row :gutter="24">
             <a-col :span="12">
-              <a-form-item label="选择产品" name="productId">
+              <a-form-item label="选择产品" name="productUuid">
                 <a-select
-                  v-model:value="formData.productId"
+                  v-model:value="formData.productUuid"
                   placeholder="请选择产品"
                   :loading="productLoading"
                   show-search
@@ -26,12 +26,12 @@
                   size="large"
                 >
                   <a-select-option
-                    v-for="product in products"
-                    :key="product.id"
-                    :value="product.id"
-                  >
-                    {{ product.name }} ({{ product.code }})
-                  </a-select-option>
+                  v-for="product in products"
+                  :key="product.uuid"
+                  :value="product.uuid"
+                >
+                  {{ product.name }} ({{ product.code }})
+                </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -211,7 +211,7 @@ const licenseTypes = ref([])
 const fileList = ref([])
 
 const formData = reactive({
-  productId: null,
+  productUuid: null,
   licenseType: null,
   name: '',
   version: '',
@@ -224,7 +224,7 @@ const formData = reactive({
 })
 
 const rules = {
-  productId: [{ required: true, message: '请选择产品', trigger: 'change' }],
+  productUuid: [{ required: true, message: '请选择产品', trigger: 'change' }],
   licenseType: [{ required: true, message: '请选择授权类型', trigger: 'change' }],
   name: [{ required: true, message: '请输入插件名称', trigger: 'blur' }],
   version: [
@@ -248,7 +248,7 @@ const uploadTips = [
 ]
 
 const filterOption = (input, option) => {
-  const product = products.value.find(p => p.id === option.value)
+  const product = products.value.find(p => p.uuid === option.value)
   return product && (product.name.toLowerCase().includes(input.toLowerCase()) || 
                      product.code.toLowerCase().includes(input.toLowerCase()))
 }
@@ -325,7 +325,7 @@ const handleSubmit = async () => {
     submitting.value = true
     
     const uploadFormData = new FormData()
-    uploadFormData.append('productId', formData.productId)
+    uploadFormData.append('productUuid', formData.productUuid)
     uploadFormData.append('licenseType', formData.licenseType)
     uploadFormData.append('name', formData.name)
     uploadFormData.append('version', formData.version)
@@ -355,7 +355,7 @@ const handleReset = () => {
   formRef.value?.resetFields()
   fileList.value = []
   Object.assign(formData, {
-    productId: null,
+    productUuid: null,
     licenseType: null,
     code: '',
     name: '',

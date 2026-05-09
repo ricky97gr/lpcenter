@@ -20,7 +20,7 @@ var publicKey *rsa.PublicKey
 func InitRSA() error {
 	var err error
 
-	privateKeyBytes, err := os.ReadFile("../private.pem")
+	privateKeyBytes, err := os.ReadFile("./private.pem")
 	if err != nil {
 		return fmt.Errorf("failed to read private key file: %+v", err)
 	}

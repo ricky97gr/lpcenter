@@ -5,7 +5,7 @@
       :data-source="licenses"
       :loading="loading"
       :pagination="pagination"
-      row-key="id"
+      row-key="uuid"
       @change="handleTableChange"
     >
       <template #bodyCell="{ column, record }">
@@ -32,14 +32,14 @@
             <a-button
               type="primary"
               size="small"
-              @click="approveLicense(record.id)"
+              @click="approveLicense(record.uuid)"
             >
               批准
             </a-button>
             <a-button
               danger
               size="small"
-              @click="rejectLicense(record.id)"
+              @click="rejectLicense(record.uuid)"
             >
               拒绝
             </a-button>
@@ -48,7 +48,7 @@
             <a-button
               type="primary"
               size="small"
-              @click="viewLicense(record.id, record.serialNumber)"
+              @click="viewLicense(record.uuid, record.serialNumber)"
             >
               <template #icon>
                 <EyeOutlined />
@@ -58,7 +58,7 @@
             <a-button
               type="primary"
               size="small"
-              @click="downloadLicense(record.id, record.serialNumber)"
+              @click="downloadLicense(record.uuid, record.serialNumber)"
             >
               <template #icon>
                 <DownloadOutlined />
@@ -69,7 +69,7 @@
               type="link"
               size="small"
               danger
-              @click="deleteLicense(record.id)"
+              @click="deleteLicense(record.uuid)"
             >
               删除
             </a-button>
@@ -143,7 +143,7 @@ const pagination = reactive({
 })
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+  { title: 'UUID', dataIndex: 'uuid', key: 'uuid', width: 180 },
   { title: '序列号', dataIndex: 'serialNumber', key: 'serialNumber' },
   { title: '产品', dataIndex: 'product', key: 'product' },
   { title: '授权类型', dataIndex: 'licenseType', key: 'licenseType', width: 120 },

@@ -21,10 +21,10 @@
 
         <a-form-item
           label="产品"
-          name="productId"
+          name="productUuid"
         >
           <a-select
-            v-model:value="form.productId"
+            v-model:value="form.productUuid"
             placeholder="请选择产品"
             style="width: 400px;"
             :loading="productLoading"
@@ -33,8 +33,8 @@
           >
             <a-select-option
               v-for="product in products"
-              :key="product.id"
-              :value="product.id"
+              :key="product.uuid"
+              :value="product.uuid"
             >
               {{ product.name }} ({{ product.code }})
             </a-select-option>
@@ -55,7 +55,7 @@
           >
             <a-select-option
               v-for="licenseType in licenseTypes"
-              :key="licenseType.id"
+              :key="licenseType.uuid"
               :value="licenseType.code"
             >
               {{ licenseType.name }}
@@ -138,7 +138,7 @@ const licenseTypes = ref([])
 
 const form = reactive({
   serialNumber: '',
-  productId: undefined,
+  productUuid: undefined,
   licenseType: '',
   licensePoints: 1,
   expiryDate: null,
@@ -147,7 +147,7 @@ const form = reactive({
 
 const rules = {
   serialNumber: [{ required: true, message: '请输入序列号', trigger: 'blur' }],
-  productId: [{ required: true, message: '请选择产品', trigger: 'change' }],
+  productUuid: [{ required: true, message: '请选择产品', trigger: 'change' }],
   licenseType: [{ required: true, message: '请选择授权类型', trigger: 'change' }],
   licensePoints: [{ required: true, message: '请输入授权点数', trigger: 'blur' }],
   expiryDate: [{ required: true, message: '请选择有效期', trigger: 'change' }]
@@ -158,7 +158,7 @@ const disabledDate = (current) => {
 }
 
 const filterOption = (input, option) => {
-  const product = products.value.find(p => p.id === option.value)
+  const product = products.value.find(p => p.uuid === option.value)
   return product && (product.name.toLowerCase().includes(input.toLowerCase()) ||
                      product.code.toLowerCase().includes(input.toLowerCase()))
 }
@@ -210,7 +210,7 @@ const handleSubmit = async () => {
   try {
     await licenseAPI.create({
       serialNumber: form.serialNumber,
-      productId: form.productId,
+      productUuid: form.productUuid,
       licenseType: form.licenseType,
       licensePoints: form.licensePoints,
       expiryDate: form.expiryDate ? form.expiryDate.format('YYYY-MM-DD') : '',
@@ -231,7 +231,7 @@ const handleReset = () => {
   formRef.value?.resetFields()
   Object.assign(form, {
     serialNumber: '',
-    productId: undefined,
+    productUuid: undefined,
     licenseType: '',
     licensePoints: 1,
     expiryDate: null,
