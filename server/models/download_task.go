@@ -5,7 +5,7 @@ import "time"
 type DownloadTask struct {
 	UUID            string     `json:"uuid" gorm:"primaryKey;column:uuid;type:varchar(36);uniqueIndex;not null"`
 	PluginUUID      string     `json:"pluginUuid" gorm:"column:plugin_uuid;type:varchar(36);not null;index"`
-	License         string     `json:"license" gorm:"column:license;type:varchar(255);not null"`
+	License         string     `json:"license" gorm:"column:license;type:text;not null"`
 	FilePath        string     `json:"filePath" gorm:"column:file_path;type:varchar(512);not null"`
 	FileSize        int64      `json:"fileSize" gorm:"column:file_size;not null"`
 	DownloadedBytes int64      `json:"downloadedBytes" gorm:"column:downloaded_bytes;default:0"`

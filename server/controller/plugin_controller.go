@@ -61,13 +61,21 @@ func CreatePlugin(c *gin.Context) {
 		return
 	}
 
-	// 生成文件存储路径
-	pluginDir := "./uploads/plugins/"
-	filePath := pluginDir + req.FileName
+	// 获取程序执行的绝对目录
+	exePath, _ := os.Executable()
+	exeDir := filepath.Dir(exePath)
+	pluginDir := filepath.Join(exeDir, "uploads", "plugins")
+
+	// 用UUID生成唯一文件名，保留原文件后缀
+	fileExt := filepath.Ext(req.FileName)
+	newFileName := fmt.Sprintf("%s%s", uuid.New().String(), fileExt)
+	filePath := filepath.Join(pluginDir, newFileName)
+
+	utils.Logger.Infof("CreatePlugin - 保存文件路径: %s", filePath)
 
 	// 确保目录存在
 	if err := os.MkdirAll(pluginDir, 0755); err != nil {
-		utils.Logger.Errorw("CreatePlugin create directory failed", "error", err)
+		utils.Logger.Errorw("CreatePlugin create directory failed", "dir", pluginDir, "error", err)
 		response.Failed(c, http.StatusInternalServerError, "创建插件目录失败")
 		return
 	}
@@ -492,20 +500,40 @@ func UploadPlugin(c *gin.Context) {
 		return
 	}
 
+	// 获取程序执行的绝对目录
+	exePath, _ := os.Executable()
+	exeDir := filepath.Dir(exePath)
+	pluginDir := filepath.Join(exeDir, "uploads", "plugins")
+
 	// 确保目录存在
-	pluginDir := "./uploads/plugins/"
 	if err := os.MkdirAll(pluginDir, 0755); err != nil {
+		utils.Logger.Errorw("UploadPlugin create directory failed", "dir", pluginDir, "error", err)
 		response.Failed(c, http.StatusInternalServerError, "创建插件目录失败")
 		return
 	}
 
+	// 用UUID生成唯一文件名，保留原文件后缀
+	fileExt := filepath.Ext(file.Filename)
+	newFileName := fmt.Sprintf("%s%s", uuid.New().String(), fileExt)
+	filePath := filepath.Join(pluginDir, newFileName)
+
+	utils.Logger.Infof("UploadPlugin - 保存文件路径: %s", filePath)
+
 	// 保存文件
-	filename := file.Filename
-	filePath := pluginDir + filename
 	if err := c.SaveUploadedFile(file, filePath); err != nil {
+		utils.Logger.Errorw("UploadPlugin save file failed", "path", filePath, "error", err)
 		response.Failed(c, http.StatusInternalServerError, "保存文件失败")
 		return
 	}
+
+	// 验证文件是否真的存在
+	if _, err := os.Stat(filePath); err != nil {
+		utils.Logger.Errorw("UploadPlugin file not exists after save", "path", filePath, "error", err)
+		response.Failed(c, http.StatusInternalServerError, "保存后文件验证失败")
+		return
+	}
+
+	utils.Logger.Infof("UploadPlugin - 文件成功保存并验证存在，大小: %d bytes", file.Size)
 
 	// 连接数据库
 	db, err := database.GetDB()
@@ -529,7 +557,7 @@ func UploadPlugin(c *gin.Context) {
 	code := fmt.Sprintf("%s_%s_%d", productCode, licenseType, time.Now().Unix())
 
 	// 生成下载链接
-	downloadURL := fmt.Sprintf("http://localhost:9092/download/%s", filename)
+	downloadURL := fmt.Sprintf("http://localhost:9092/download/%s", newFileName)
 
 	// 创建插件记录
 	plugin := models.Plugin{
@@ -577,7 +605,7 @@ func CreateDownloadTask(c *gin.Context) {
 	// 查找插件
 	var plugin models.Plugin
 	fmt.Println("find plugin, uuid: ", req.UUID)
-	if err := db.First(&plugin, req.UUID).Error; err != nil {
+	if err := db.Where("uuid = ?", req.UUID).First(&plugin).Error; err != nil {
 		response.Failed(c, http.StatusNotFound, "插件不存在")
 		return
 	}
@@ -659,7 +687,7 @@ func CreateDownloadTask(c *gin.Context) {
 		"taskId":      taskUUID,
 		"fileName":    filepath.Base(plugin.FilePath),
 		"fileSize":    fileInfo.Size(),
-		"downloadUrl": fmt.Sprintf("http://localhost:8082/download/file?taskId=%s", taskUUID),
+		"downloadUrl": fmt.Sprintf("http://localhost:9092/download/file?taskId=%s", taskUUID),
 	}, 1)
 }
 
