@@ -643,7 +643,7 @@ func CreateDownloadTask(c *gin.Context) {
 
 	// 检查是否已存在相同的完成任务
 	var existingTask models.DownloadTask
-	if err := db.Where("uuid = ? AND license = ? AND status = ?", req.UUID, req.License, models.DownloadTaskStatusCompleted).First(&existingTask).Error; err == nil {
+	if err := db.Where("uuid = ? AND license = ? ", req.UUID, req.License).First(&existingTask).Error; err == nil {
 		response.Failed(c, http.StatusBadRequest, "该插件已下载完成，不允许再次下载")
 		return
 	}
@@ -707,10 +707,12 @@ func GetDownloadStatus(c *gin.Context) {
 	}
 
 	var task models.DownloadTask
-	if err := db.Preload("Plugin").Where("uuid = ?", taskUUID).First(&task).Error; err != nil {
+	if err := db.Where("uuid = ?", taskUUID).First(&task).Error; err != nil {
 		response.Failed(c, http.StatusNotFound, "下载任务不存在")
 		return
 	}
+
+	utils.Logger.Infof("GetDownloadStatus, taskId: %s, task: %+v\n", taskUUID, task)
 
 	response.Success(c, task, 1)
 }
@@ -833,187 +835,6 @@ func DownloadFile(c *gin.Context) {
 
 	// 等待下载完成
 	<-done
-}
-
-// 旧的下载接口（保持兼容）
-func DownloadPluginFile(c *gin.Context) {
-	filename := c.Param("filename")
-	license := c.Query("license")
-	taskUUID := c.Query("taskId")
-
-	if filename == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Filename is required"})
-		return
-	}
-
-	if license == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "License is required"})
-		return
-	}
-
-	// 连接数据库
-	db, err := database.GetDB()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection failed"})
-		return
-	}
-
-	// 查找对应的插件
-	var plugin models.Plugin
-	if err := db.Where("file_path LIKE ?", "./uploads/plugins/"+filename).First(&plugin).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Plugin not found"})
-		return
-	}
-
-	// 验证插件状态
-	if plugin.Status != models.PluginStatusPublished {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Plugin not published"})
-		return
-	}
-
-	// 验证许可证
-	var licenseObj models.License
-	if err := db.Where("serial_number = ? AND status = ?", license, models.LicenseStatusApproved).First(&licenseObj).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid license"})
-		return
-	}
-
-	// 验证许可证是否过期
-	if licenseObj.ExpiryDate.Before(time.Now()) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "License expired"})
-		return
-	}
-
-	// 验证许可证类型是否与插件类型匹配
-	if licenseObj.LicenseType != plugin.LicenseType {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "License type does not match plugin type"})
-		return
-	}
-
-	// 验证许可证产品是否与插件产品匹配
-	if licenseObj.ProductUUID != plugin.ProductUUID {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "License product does not match plugin product"})
-		return
-	}
-
-	pluginDir := "./uploads/plugins/"
-	filePath := pluginDir + filename
-
-	if !strings.HasPrefix(filepath.Clean(filePath), filepath.Join(pluginDir)) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
-		return
-	}
-
-	fileInfo, err := os.Stat(filePath)
-	if os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
-		return
-	}
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to access file"})
-		return
-	}
-
-	// 如果没有taskId，创建新的下载任务
-	if taskUUID == "" {
-		taskUUID = uuid.New().String()
-		clientIP := c.ClientIP()
-		userAgent := c.GetHeader("User-Agent")
-
-		task := models.DownloadTask{
-			UUID:       taskUUID,
-			PluginUUID: plugin.UUID,
-			License:    license,
-			FilePath:   filePath,
-			FileSize:   fileInfo.Size(),
-			Status:     models.DownloadTaskStatusPending,
-			IP:         clientIP,
-			UserAgent:  userAgent,
-			StartedAt:  time.Now(),
-		}
-
-		if err := db.Create(&task).Error; err != nil {
-			utils.Logger.Errorw("DownloadPluginFile create task failed", "error", err)
-		}
-
-		// 返回下载任务ID
-		c.JSON(http.StatusOK, gin.H{
-			"taskId":      taskUUID,
-			"downloadUrl": fmt.Sprintf("http://localhost:8082/download/%s?license=%s&taskId=%s", filename, license, taskUUID),
-			"fileSize":    fileInfo.Size(),
-		})
-		return
-	}
-
-	// 查找下载任务
-	var task models.DownloadTask
-	if err := db.Where("uuid = ?", taskUUID).First(&task).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Download task not found"})
-		return
-	}
-
-	// 检查任务是否已完成
-	if task.Status == models.DownloadTaskStatusCompleted {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Task already completed"})
-		return
-	}
-
-	// 更新任务状态为下载中
-	task.Status = models.DownloadTaskStatusDownloading
-	db.Save(&task)
-
-	// 处理Range请求
-	rangeHeader := c.GetHeader("Range")
-	var start, end int64 = 0, fileInfo.Size() - 1
-
-	if rangeHeader != "" {
-		_, err := fmt.Sscanf(rangeHeader, "bytes=%d-%d", &start, &end)
-		if err != nil {
-			start = 0
-			end = fileInfo.Size() - 1
-		}
-	}
-
-	// 更新下载进度
-	downloadedBytes := end + 1
-	progress := float64(downloadedBytes) / float64(fileInfo.Size()) * 100
-
-	task.DownloadedBytes = downloadedBytes
-	task.Progress = progress
-	if downloadedBytes >= fileInfo.Size() {
-		task.Status = models.DownloadTaskStatusCompleted
-		now := time.Now()
-		task.CompletedAt = &now
-	}
-	db.Save(&task)
-
-	// 打开文件
-	file, err := os.Open(filePath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
-		return
-	}
-	defer file.Close()
-
-	// 设置响应头
-	if rangeHeader != "" {
-		c.Header("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fileInfo.Size()))
-		c.Header("Content-Length", fmt.Sprintf("%d", end-start+1))
-		c.Status(http.StatusPartialContent)
-	} else {
-		c.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
-		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
-	}
-
-	// 定位到起始位置
-	_, err = file.Seek(start, 0)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to seek file"})
-		return
-	}
-
-	// 流式传输文件
-	http.ServeContent(c.Writer, c.Request, filename, fileInfo.ModTime(), file)
 }
 
 func GetDownloadProgress(c *gin.Context) {
